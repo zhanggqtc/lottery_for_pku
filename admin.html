@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>座位抽奖 · 控制端 | Seat Lottery Admin</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --red: #ff4655; --red-2: #ff6b6b; --gold: #ffd700; --cyan: #00d4ff;
+    --bg: #0a0e13; --bg-2: #0f1923; --bg-3: #1a2634;
+    --text: #e0e6ed; --muted: #7a8fa6;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+  /* Top bar */
+  .topbar {
+    background: linear-gradient(90deg, #0f1923 0%, #1a0a10 100%);
+    border-bottom: 1px solid rgba(255,70,85,0.25);
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 14px;
+    position: sticky; top: 0; z-index: 50;
+    flex-wrap: wrap;
+  }
+  .topbar .logo {
+    font-size: 16px; font-weight: 800; color: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .topbar .logo .accent { color: var(--red); }
+  .topbar .badge {
+    background: linear-gradient(135deg, var(--red), var(--gold));
+    color: #1a1608;
+    padding: 3px 10px; border-radius: 4px;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+  }
+  .topbar .spacer { flex: 1; }
+  .topbar .screen-status {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 4px 10px; border-radius: 14px;
+    font-size: 12px; color: var(--muted);
+  }
+  .topbar .screen-status .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
+  }
+  .topbar .screen-status.online .dot {
+    background: #4ade80; box-shadow: 0 0 6px #4ade80;
+    animation: pulse 1.5s infinite;
+  }
+  .topbar .screen-status.online { color: #4ade80; border-color: rgba(74,222,128,0.4); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .topbar a {
+    color: var(--muted); text-decoration: none; font-size: 13px;
+    padding: 4px 10px; border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .topbar a:hover { color: #fff; background: rgba(255,255,255,0.05); }
+  .topbar a.btn-screen {
+    background: linear-gradient(135deg, #ff4655, #ffd700);
+    color: #1a1608 !important; font-weight: 800;
+    padding: 6px 14px;
+  }
+  .topbar a.btn-screen:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,70,85,0.4); }
+
+  /* Hero */
+  .hero {
+    background:
+      radial-gradient(circle at 20% 0%, rgba(255,70,85,0.12), transparent 60%),
+      linear-gradient(135deg, #0f1923 0%, #1a1030 50%, #0f1923 100%);
+    padding: 24px 20px 18px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,70,85,0.15);
+  }
+  .hero h1 {
+    font-size: 24px; font-weight: 900;
+    background: linear-gradient(135deg, #ff4655 0%, #ffd700 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 2px;
+  }
+  .hero .sub { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+  /* Container */
+  .container {
+    max-width: 1200px; margin: 0 auto; padding: 20px;
+    display: grid; grid-template-columns: 360px 1fr; gap: 18px;
+  }
+  @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+  /* Panel */
+  .panel {
+    background: linear-gradient(145deg, var(--bg-3) 0%, #162029 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 18px;
+  }
+  .panel + .panel { margin-top: 16px; }
+  .panel h2 {
+    font-size: 13px; font-weight: 800; color: #fff; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px; padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,70,85,0.2);
+  }
+  .panel h2 .num {
+    background: var(--red); color: #fff;
+    width: 22px; height: 22px; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+
+  /* Form */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.5px; }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px; padding: 8px 10px;
+    color: #fff; font-size: 13px;
+    font-family: inherit;
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--red); }
+  .field textarea {
+    resize: vertical; min-height: 60px;
+    font-family: 'SF Mono', Menlo, monospace; font-size: 12px;
+  }
+  .field .hint { font-size: 10px; color: #5a6b80; margin-top: 4px; line-height: 1.4; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 16px; border-radius: 6px; border: none;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+    cursor: pointer; transition: all 0.2s; font-family: inherit;
+  }
+  .btn-primary { background: linear-gradient(135deg, var(--red), #c73a46); color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,70,85,0.4); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-ghost { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid rgba(255,255,255,0.08); }
+  .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+  .btn-danger { background: rgba(255,70,85,0.12); color: #ff8a94; border: 1px solid rgba(255,70,85,0.3); }
+  .btn-danger:hover { background: rgba(255,70,85,0.2); }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .stat {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 6px; padding: 10px 8px; text-align: center;
+  }
+  .stat .v { font-size: 22px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+  .stat.red .v { color: var(--red-2); }
+  .stat.green .v { color: #4ade80; }
+  .stat.gold .v { color: var(--gold); }
+  .stat .l { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
+
+  /* Big draw button */
+  .big-draw {
+    background: linear-gradient(135deg, var(--red), var(--gold));
+    color: #1a1608; border: none;
+    padding: 22px 30px;
+    font-size: 22px; font-weight: 900; letter-spacing: 8px;
+    border-radius: 12px; cursor: pointer;
+    width: 100%;
+    transition: all 0.3s;
+    box-shadow: 0 6px 30px rgba(255,70,85,0.3);
+    margin-bottom: 14px;
+    font-family: inherit;
+  }
+  .big-draw:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(255,70,85,0.5);
+  }
+  .big-draw:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+  .big-draw.drawing {
+    background: linear-gradient(135deg, #888, #aaa);
+    pointer-events: none;
+  }
+
+  /* Last-result big card */
+  .last-result {
+    background: linear-gradient(145deg, #1a0e12 0%, #0f0a0f 100%);
+    border: 1px solid rgba(255,215,0,0.4);
+    border-radius: 12px; padding: 18px;
+    text-align: center;
+    margin-bottom: 14px;
+    box-shadow: 0 0 24px rgba(255,215,0,0.15);
+  }
+  .last-result .label {
+    font-size: 11px; color: var(--gold); letter-spacing: 4px; font-weight: 700;
+  }
+  .last-result .seat {
+    font-size: 36px; font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), var(--red-2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin: 6px 0; letter-spacing: 4px;
+    font-family: 'SF Mono', Menlo, monospace;
+  }
+  .last-result .empty { color: #4a5b70; font-size: 13px; padding: 10px; letter-spacing: 2px; }
+
+  /* Trigger hint card (replaces local draw button) */
+  .trigger-card {
+    background:
+      radial-gradient(circle at 50% 0%, rgba(0,212,255,0.12), transparent 70%),
+      linear-gradient(145deg, #0e1a26 0%, #0a1320 100%);
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 12px;
+    padding: 22px 20px;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .trigger-card-title {
+    font-size: 18px; font-weight: 800; letter-spacing: 4px;
+    background: linear-gradient(135deg, #00d4ff 0%, #c084fc 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .trigger-card-desc {
+    font-size: 13px; color: #c5d0dc; line-height: 1.7;
+    margin-bottom: 14px;
+  }
+  .trigger-card-desc strong { color: #fff; }
+  .trigger-card-desc kbd {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    margin: 0 1px;
+    color: #ffd700;
+  }
+  .trigger-card-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, #ff4655 0%, #ffd700 100%);
+    color: #1a1608;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+  .trigger-card-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255,70,85,0.4);
+  }
+
+  /* Seat map */
+  .seat-section {
+    background: linear-gradient(145deg, #131c26 0%, #0e151d 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 18px;
+    margin-bottom: 16px;
+  }
+  .seat-section .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,70,85,0.15);
+    flex-wrap: wrap; gap: 8px;
+  }
+  .seat-section .header h2 {
+    font-size: 13px; font-weight: 800; color: #fff; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .seat-section .header h2 .num {
+    background: var(--red); color: #fff;
+    width: 22px; height: 22px; border-radius: 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .legend { display: flex; gap: 12px; align-items: center; font-size: 11px; color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .legend-dot.avail { background: rgba(74,222,128,0.5); border: 1px solid #4ade80; }
+  .legend-dot.exc { background: rgba(255,70,85,0.4); border: 1px solid var(--red); }
+  .legend-dot.won { background: rgba(255,215,0,0.5); border: 1px solid var(--gold); }
+
+  .stage {
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,70,85,0.1), transparent);
+    border: 1px dashed rgba(255,70,85,0.3);
+    color: var(--muted);
+    padding: 6px 0; border-radius: 4px;
+    font-size: 11px; letter-spacing: 4px; margin-bottom: 12px;
+  }
+
+  .seat-wrap {
+    overflow: auto; max-height: 380px;
+    padding: 8px 4px; border-radius: 8px;
+    background: rgba(0,0,0,0.2);
+  }
+  .seat-grid { display: inline-block; min-width: 100%; }
+  .seat-row { display: flex; align-items: center; margin-bottom: 4px; gap: 3px; }
+  .row-label {
+    flex-shrink: 0; width: 36px;
+    font-size: 11px; color: var(--muted);
+    text-align: right; padding-right: 6px; font-weight: 600;
+  }
+  .seat {
+    flex-shrink: 0; width: 22px; height: 22px;
+    border-radius: 3px;
+    background: rgba(74,222,128,0.18);
+    border: 1px solid rgba(74,222,128,0.4);
+    cursor: pointer;
+    font-size: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #4ade80;
+    transition: all 0.15s; user-select: none;
+  }
+  .seat:hover { transform: scale(1.15); z-index: 2; }
+  .seat.excluded {
+    background: rgba(255,70,85,0.25);
+    border-color: var(--red);
+    color: #ff8a94; text-decoration: line-through;
+  }
+  .seat.won {
+    background: rgba(255,215,0,0.4);
+    border-color: var(--gold); color: var(--gold);
+    box-shadow: 0 0 8px rgba(255,215,0,0.5);
+  }
+
+  .quick-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .quick-actions .pill {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--muted);
+    padding: 4px 10px; border-radius: 12px;
+    font-size: 11px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .quick-actions .pill:hover { border-color: var(--red); color: #ff8a94; }
+
+  /* History */
+  .history-list {
+    max-height: 260px; overflow-y: auto;
+    background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;
+  }
+  .history-empty { text-align: center; color: #4a5b70; font-size: 12px; padding: 30px 10px; }
+  .history-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px;
+    margin-bottom: 4px;
+    background: rgba(255,215,0,0.08);
+    border: 1px solid rgba(255,215,0,0.15);
+    font-size: 12px;
+  }
+  .history-item .idx {
+    width: 22px; height: 22px;
+    background: var(--gold); color: #1a1608;
+    border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 11px;
+    flex-shrink: 0;
+  }
+  .history-item .seat-tag {
+    background: rgba(255,70,85,0.15);
+    color: #ff8a94;
+    padding: 2px 8px; border-radius: 4px;
+    font-weight: 700;
+    font-family: 'SF Mono', Menlo, monospace;
+  }
+  .history-item .time { color: var(--muted); font-size: 11px; margin-left: auto; }
+
+  /* Image upload */
+  .img-uploader {
+    margin-top: 10px; padding: 10px;
+    border: 1px dashed rgba(255,255,255,0.1);
+    border-radius: 6px;
+    text-align: center; font-size: 11px;
+    color: var(--muted); cursor: pointer;
+    transition: all 0.2s;
+  }
+  .img-uploader:hover { border-color: var(--red); color: #ff8a94; }
+  .img-uploader input { display: none; }
+  .img-preview {
+    margin-top: 8px; max-height: 80px;
+    margin-left: auto; margin-right: auto;
+    display: block; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; top: 80px; left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,70,85,0.3);
+    color: #fff;
+    padding: 10px 20px; border-radius: 6px;
+    font-size: 13px; z-index: 200;
+    opacity: 0; pointer-events: none;
+    transition: all 0.3s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Tip card */
+  .tip-card {
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.25);
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 12px; color: #6bd9ff;
+    line-height: 1.6;
+  }
+  .tip-card strong { color: #fff; }
+  .tip-card .step {
+    display: inline-block;
+    width: 18px; height: 18px;
+    background: var(--cyan); color: #0a0e13;
+    border-radius: 50%;
+    text-align: center; line-height: 18px;
+    font-size: 11px; font-weight: 800;
+    margin-right: 6px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center; padding: 30px 20px;
+    color: #3a4b5e; font-size: 12px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="logo">🎮 <span>Seat</span> <span class="accent">Lottery · Admin</span></div>
+  <div class="badge">ADMIN</div>
+  <div class="screen-status" id="screenStatus">
+    <span class="dot"></span><span id="screenStatusText">大屏未连接</span>
+  </div>
+  <div class="spacer"></div>
+  <a href="./screen.html" target="_blank" class="btn-screen">🖥️ 打开大屏端</a>
+  <a href="https://github.com/" target="_blank" rel="noopener">GitHub ↗</a>
+</nav>
+
+<div class="hero">
+  <h1>🎁 座位抽奖 · 控制端</h1>
+  <div class="sub">配置座位 · 排除座位 · 大屏实时联动 · 现场投影双屏方案</div>
+</div>
+
+<div class="container">
+
+  <!-- LEFT -->
+  <div>
+    <div class="panel">
+      <div class="tip-card" style="margin-bottom:14px;">
+        <strong>📺 双屏使用流程：</strong><br>
+        <span class="step">1</span>点击右上角【🖥️ 打开大屏端】，把那个标签页拖到投影屏并按 F11 全屏<br>
+        <span class="step">2</span>在本页配置座位、排除已占座位、上传奖品图<br>
+        <span class="step">3</span>主持人在大屏前直接点【开始抽奖】按钮（或按空格键）启动抽奖
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="num">1</span> 座位配置</h2>
+      <div class="form-row">
+        <div class="field"><label>排数</label><input type="number" id="cfgRows" min="1" max="200" value="20"></div>
+        <div class="field"><label>每排座位数</label><input type="number" id="cfgCols" min="1" max="200" value="30"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>起始排号</label><input type="number" id="cfgRowStart" value="1"></div>
+        <div class="field"><label>起始座号</label><input type="number" id="cfgColStart" value="1"></div>
+      </div>
+      <button class="btn btn-primary" id="btnApplyCfg" style="width:100%;">应用配置 / 重置座位</button>
+
+      <div class="field" style="margin-top:14px;">
+        <label>批量排除座位（可选）</label>
+        <textarea id="cfgExcludeText" placeholder="格式示例（任选一种或混用，逗号分隔）：&#10;1-1, 1-2, 1-3&#10;1排5-10座&#10;2-5~2-12&#10;整排：3, 4&#10;留空则不批量排除"></textarea>
+        <div class="hint">支持：单个座位 1-1 / 范围 2-5~2-12 / 整排排除（直接写排号 3）。点击下方座位图也可单独切换。</div>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-ghost" id="btnApplyExclude" style="flex:1;">应用批量排除</button>
+        <button class="btn btn-danger" id="btnClearExclude">清空排除</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span class="num">2</span> 奖品设置</h2>
+      <div class="field">
+        <label>奖品名称</label>
+        <input type="text" id="cfgPrizeName" value="一等奖">
+      </div>
+      <div class="field" style="margin-top:10px;">
+        <label>奖品副标题</label>
+        <input type="text" id="cfgPrizeSub" value="活动现场限定">
+      </div>
+      <label class="img-uploader" for="prizeImageInput">
+        🖼️ 点击上传奖品图片（默认已内置奖牌 SVG）
+        <input type="file" id="prizeImageInput" accept="image/*">
+      </label>
+      <img class="img-preview" id="prizeImagePreview" style="display:none;">
+    </div>
+
+    <div class="panel">
+      <h2><span class="num">3</span> 抽奖记录 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;" id="historyCount">0 位</span></h2>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">暂无中奖记录</div>
+      </div>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-ghost" id="btnExport" style="flex:1;">📥 导出名单</button>
+        <button class="btn btn-danger" id="btnClearHistory">清空记录</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div>
+    <!-- Last result big -->
+    <div class="last-result" id="lastResult">
+      <div class="label">★ 最新中奖座位 ★</div>
+      <div class="seat empty" id="lastSeatBig">尚未开始抽奖</div>
+      <div style="font-size:12px;color:var(--muted);">中奖结果会自动同步显示在此处</div>
+    </div>
+
+    <!-- Trigger hint card (replaces big draw button) -->
+    <div class="trigger-card">
+      <div class="trigger-card-title">🎬 抽奖在大屏端启动</div>
+      <div class="trigger-card-desc">
+        本页只负责<strong>配置座位</strong>与<strong>查看记录</strong>。<br>
+        请在大屏端点击【开始抽奖】按钮，或按 <kbd>空格</kbd> / <kbd>Enter</kbd> 抽奖。
+      </div>
+      <a href="./screen.html" target="_blank" class="trigger-card-btn">🖥️ 打开 / 切换到大屏端</a>
+    </div>
+
+    <div class="stats">
+      <div class="stat green"><div class="v" id="statAvailable">0</div><div class="l">可抽座位</div></div>
+      <div class="stat red"><div class="v" id="statExcluded">0</div><div class="l">已排除</div></div>
+      <div class="stat gold"><div class="v" id="statWon">0</div><div class="l">已中奖</div></div>
+    </div>
+
+    <div class="seat-section">
+      <div class="header">
+        <h2><span class="num">📍</span> 座位图（点击切换排除）</h2>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot avail"></span>可抽</span>
+          <span class="legend-item"><span class="legend-dot exc"></span>已排除</span>
+          <span class="legend-item"><span class="legend-dot won"></span>已中奖</span>
+        </div>
+      </div>
+      <div class="quick-actions">
+        <span style="font-size:11px;color:var(--muted);align-self:center;">快捷：</span>
+        <span class="pill" data-quick="all-clear">全部可抽</span>
+        <span class="pill" data-quick="invert">反选排除</span>
+        <span class="pill" data-quick="first-row">排除第1排</span>
+        <span class="pill" data-quick="last-row">排除最后1排</span>
+        <span class="pill" data-quick="aisle">排除两端各2座</span>
+      </div>
+      <div class="stage">舞 台 / 表 演 区</div>
+      <div class="seat-wrap"><div class="seat-grid" id="seatGrid"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="footer">
+  座位抽奖 · 控制端 &nbsp;|&nbsp; 开源在 GitHub &nbsp;|&nbsp; 大屏端独立显示，请保持本页与大屏页同时打开
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // ---------- shared keys ----------
+  const STATE_KEY = 'seat-lottery-state-v1';
+  const CMD_KEY   = 'seat-lottery-cmd-v1';
+  const SCREEN_HB = 'seat-lottery-screen-hb-v1';
+
+  const state = {
+    rows: 20, cols: 30, rowStart: 1, colStart: 1,
+    excluded: [],       // array for serialization
+    won: [],
+    prizeName: '一等奖',
+    prizeSub: '活动现场限定',
+    prizeImage: null,
+    drawing: false,     // is draw animation playing on screen
+    lastWinner: null,   // latest winner shown on screen
+  };
+
+  function key(r,c){ return r+'-'+c; }
+  function saveState(){
+    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e){}
+  }
+  function loadState(){
+    try {
+      const raw = localStorage.getItem(STATE_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      Object.assign(state, d);
+      if (!Array.isArray(state.excluded)) state.excluded = [];
+      if (!Array.isArray(state.won)) state.won = [];
+    } catch(e){}
+  }
+  function isExcluded(k){ return state.excluded.indexOf(k) !== -1; }
+  function addExcluded(k){ if (!isExcluded(k)) state.excluded.push(k); }
+  function removeExcluded(k){
+    const i = state.excluded.indexOf(k);
+    if (i !== -1) state.excluded.splice(i,1);
+  }
+
+  function sendCmd(type, payload){
+    const cmd = { type, payload: payload||null, ts: Date.now() + Math.random() };
+    try { localStorage.setItem(CMD_KEY, JSON.stringify(cmd)); } catch(e){}
+  }
+
+  // ---------- toast ----------
+  let toastTimer = null;
+  function toast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+  }
+
+  // ---------- render ----------
+  function render(){
+    document.getElementById('cfgRows').value = state.rows;
+    document.getElementById('cfgCols').value = state.cols;
+    document.getElementById('cfgRowStart').value = state.rowStart;
+    document.getElementById('cfgColStart').value = state.colStart;
+    document.getElementById('cfgPrizeName').value = state.prizeName;
+    document.getElementById('cfgPrizeSub').value = state.prizeSub;
+
+    const prev = document.getElementById('prizeImagePreview');
+    if (state.prizeImage) { prev.src = state.prizeImage; prev.style.display = 'block'; }
+    else prev.style.display = 'none';
+
+    renderSeats();
+    renderStats();
+    renderHistory();
+    renderLastResult();
+  }
+
+  function renderSeats(){
+    const grid = document.getElementById('seatGrid');
+    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
+    const excSet = new Set(state.excluded);
+    const frags = [];
+    for (let i = 0; i < state.rows; i++) {
+      const r = state.rowStart + i;
+      const cells = [`<span class="row-label">${r}排</span>`];
+      for (let j = 0; j < state.cols; j++) {
+        const c = state.colStart + j;
+        const k = key(r,c);
+        let cls = 'seat';
+        if (wonSet.has(k)) cls += ' won';
+        else if (excSet.has(k)) cls += ' excluded';
+        cells.push(`<span class="${cls}" data-r="${r}" data-c="${c}" title="${r}排${c}座">${c}</span>`);
+      }
+      frags.push(`<div class="seat-row">${cells.join('')}</div>`);
+    }
+    grid.innerHTML = frags.join('');
+  }
+
+  function renderStats(){
+    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
+    const excSet = new Set(state.excluded);
+    let available = 0;
+    for (let i = 0; i < state.rows; i++) {
+      for (let j = 0; j < state.cols; j++) {
+        const r = state.rowStart + i, c = state.colStart + j;
+        const k = key(r,c);
+        if (!excSet.has(k) && !wonSet.has(k)) available++;
+      }
+    }
+    document.getElementById('statAvailable').textContent = available;
+    document.getElementById('statExcluded').textContent = state.excluded.filter(k => !wonSet.has(k)).length;
+    document.getElementById('statWon').textContent = wonSet.size;
+    document.getElementById('historyCount').textContent = wonSet.size + ' 位';
+  }
+
+  function renderHistory(){
+    const list = document.getElementById('historyList');
+    if (!state.won.length) {
+      list.innerHTML = '<div class="history-empty">暂无中奖记录</div>';
+      return;
+    }
+    list.innerHTML = state.won.slice().reverse().map((w, idx) => {
+      const totalIdx = state.won.length - idx;
+      const t = new Date(w.time);
+      const ts = String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+      return `<div class="history-item">
+        <span class="idx">${totalIdx}</span>
+        <span class="seat-tag">${w.row}排 ${w.col}座</span>
+        <span class="time">${ts}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function renderLastResult(){
+    const el = document.getElementById('lastSeatBig');
+    if (state.won.length) {
+      const last = state.won[state.won.length - 1];
+      el.textContent = `${last.row} 排 ${last.col} 座`;
+      el.classList.remove('empty');
+    } else {
+      el.textContent = '尚未开始抽奖';
+      el.classList.add('empty');
+    }
+  }
+
+  // ---------- seat click ----------
+  document.getElementById('seatGrid').addEventListener('click', (e) => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    const seat = e.target.closest('.seat');
+    if (!seat) return;
+    if (seat.classList.contains('won')) { toast('已中奖座位无法切换'); return; }
+    const r = +seat.dataset.r, c = +seat.dataset.c;
+    const k = key(r,c);
+    if (isExcluded(k)) removeExcluded(k); else addExcluded(k);
+    saveState();
+    renderSeats(); renderStats();
+  });
+
+  // ---------- config apply ----------
+  document.getElementById('btnApplyCfg').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    const rows = +document.getElementById('cfgRows').value;
+    const cols = +document.getElementById('cfgCols').value;
+    const rs = +document.getElementById('cfgRowStart').value;
+    const cs = +document.getElementById('cfgColStart').value;
+    if (rows < 1 || cols < 1 || rows > 200 || cols > 200) { toast('排数/座数范围 1~200'); return; }
+    state.rows = rows; state.cols = cols; state.rowStart = rs; state.colStart = cs;
+    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
+    state.excluded = state.excluded.filter(k => {
+      const [r,c] = k.split('-').map(Number);
+      return r >= rs && r < rs+rows && c >= cs && c < cs+cols && !wonSet.has(k);
+    });
+    saveState(); render();
+    toast('座位配置已更新');
+  });
+
+  // ---------- prize ----------
+  document.getElementById('cfgPrizeName').addEventListener('input', e => { state.prizeName = e.target.value; saveState(); });
+  document.getElementById('cfgPrizeSub').addEventListener('input', e => { state.prizeSub = e.target.value; saveState(); });
+  document.getElementById('prizeImageInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { toast('请选择图片文件'); return; }
+    if (file.size > 5*1024*1024) { toast('图片过大，请压缩到 5MB 以内'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.prizeImage = reader.result;
+      saveState();
+      const prev = document.getElementById('prizeImagePreview');
+      prev.src = reader.result; prev.style.display = 'block';
+      toast('奖品图片已更新（大屏端会同步）');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---------- exclude parser ----------
+  function parseExcludeText(text){
+    if (!text) return { added: 0, errors: [] };
+    const tokens = text.replace(/[，；;]/g, ',').split(/[,\n]+/).map(s=>s.trim()).filter(Boolean);
+    let added = 0; const errors = [];
+    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
+    const inRange = (r, c) =>
+      r >= state.rowStart && r < state.rowStart + state.rows &&
+      c >= state.colStart && c < state.colStart + state.cols;
+
+    for (const tok of tokens) {
+      const cn = tok.match(/^(\d+)\s*排\s*(\d+)\s*[\-~~到至]\s*(\d+)\s*座?$/);
+      const cnSingle = tok.match(/^(\d+)\s*排\s*(\d+)\s*座?$/);
+      const cnRow = tok.match(/^(\d+)\s*排$/);
+      const range = tok.match(/^(\d+)-(\d+)\s*[~~]\s*(\d+)-(\d+)$/);
+      const single = tok.match(/^(\d+)-(\d+)$/);
+      const rowOnly = tok.match(/^(\d+)$/);
+
+      if (range) {
+        const r1=+range[1], c1=+range[2], r2=+range[3], c2=+range[4];
+        if (r1 !== r2) { errors.push(tok+' (跨排范围暂不支持)'); continue; }
+        const lo = Math.min(c1,c2), hi = Math.max(c1,c2);
+        for (let c = lo; c <= hi; c++) {
+          if (inRange(r1,c) && !wonSet.has(key(r1,c))) { addExcluded(key(r1,c)); added++; }
+        }
+      } else if (cn && +cn[1]) {
+        const r=+cn[1], lo=Math.min(+cn[2],+cn[3]), hi=Math.max(+cn[2],+cn[3]);
+        for (let c = lo; c <= hi; c++) {
+          if (inRange(r,c) && !wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
+        }
+      } else if (single) {
+        const r=+single[1], c=+single[2];
+        if (inRange(r,c) && !wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
+        else if (!inRange(r,c)) errors.push(tok+' (越界)');
+      } else if (cnSingle) {
+        const r=+cnSingle[1], c=+cnSingle[2];
+        if (inRange(r,c) && !wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
+        else if (!inRange(r,c)) errors.push(tok+' (越界)');
+      } else if (rowOnly || cnRow) {
+        const r = +(rowOnly ? rowOnly[1] : cnRow[1]);
+        if (r < state.rowStart || r >= state.rowStart + state.rows) { errors.push(tok+' (排号越界)'); continue; }
+        for (let j = 0; j < state.cols; j++) {
+          const c = state.colStart + j;
+          if (!wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
+        }
+      } else {
+        errors.push(tok+' (格式无法识别)');
+      }
+    }
+    return { added, errors };
+  }
+  document.getElementById('btnApplyExclude').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    const text = document.getElementById('cfgExcludeText').value;
+    const { added, errors } = parseExcludeText(text);
+    saveState(); renderSeats(); renderStats();
+    if (errors.length) toast(`已排除 ${added} 个座位，${errors.length} 项识别失败`);
+    else toast(`已排除 ${added} 个座位`);
+  });
+  document.getElementById('btnClearExclude').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    state.excluded = []; saveState(); renderSeats(); renderStats();
+    toast('已清空所有排除');
+  });
+
+  // ---------- quick actions ----------
+  document.querySelectorAll('.pill').forEach(p => {
+    p.addEventListener('click', () => {
+      if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+      const action = p.dataset.quick;
+      const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
+      if (action === 'all-clear') { state.excluded = []; toast('所有座位已设为可抽'); }
+      else if (action === 'invert') {
+        const ne = [];
+        for (let i = 0; i < state.rows; i++) for (let j = 0; j < state.cols; j++) {
+          const r = state.rowStart + i, c = state.colStart + j;
+          const k = key(r,c);
+          if (wonSet.has(k)) continue;
+          if (!isExcluded(k)) ne.push(k);
+        }
+        state.excluded = ne; toast('已反选排除状态');
+      }
+      else if (action === 'first-row') {
+        const r = state.rowStart;
+        for (let j = 0; j < state.cols; j++) {
+          const c = state.colStart + j;
+          if (!wonSet.has(key(r,c))) addExcluded(key(r,c));
+        }
+        toast('已排除第 ' + r + ' 排');
+      }
+      else if (action === 'last-row') {
+        const r = state.rowStart + state.rows - 1;
+        for (let j = 0; j < state.cols; j++) {
+          const c = state.colStart + j;
+          if (!wonSet.has(key(r,c))) addExcluded(key(r,c));
+        }
+        toast('已排除第 ' + r + ' 排');
+      }
+      else if (action === 'aisle') {
+        for (let i = 0; i < state.rows; i++) {
+          const r = state.rowStart + i;
+          for (let off = 0; off < 2; off++) {
+            const cL = state.colStart + off;
+            const cR = state.colStart + state.cols - 1 - off;
+            if (!wonSet.has(key(r,cL))) addExcluded(key(r,cL));
+            if (!wonSet.has(key(r,cR))) addExcluded(key(r,cR));
+          }
+        }
+        toast('已排除每排两端各 2 座');
+      }
+      saveState(); renderSeats(); renderStats();
+    });
+  });
+
+  // ---------- DRAW (now triggered on screen, not here) ----------
+  // Admin page is configuration-only; the big screen page picks the winner and runs the animation.
+
+  // ---------- history actions ----------
+  document.getElementById('btnClearHistory').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    if (!state.won.length) { toast('无记录可清空'); return; }
+    if (!confirm('确定清空所有中奖记录？已中奖的座位将变回可抽状态。')) return;
+    state.won = []; state.lastWinner = null;
+    saveState();
+    sendCmd('reset');
+    render();
+    toast('记录已清空');
+  });
+  document.getElementById('btnExport').addEventListener('click', () => {
+    if (!state.won.length) { toast('暂无记录可导出'); return; }
+    const lines = ['序号,排,座,中奖时间'];
+    state.won.forEach((w, idx) => {
+      const t = new Date(w.time);
+      const ts = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+      lines.push(`${idx+1},${w.row},${w.col},${ts}`);
+    });
+    const csv = '\uFEFF' + lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `seat-lottery-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    toast('已导出 CSV');
+  });
+
+  // ---------- listen storage events ----------
+  window.addEventListener('storage', (e) => {
+    if (e.key === STATE_KEY) {
+      // state updated by screen page (won list, drawing flag)
+      loadState();
+      render();
+    } else if (e.key === SCREEN_HB) {
+      updateScreenStatus();
+    }
+  });
+
+  // ---------- screen heartbeat detection ----------
+  function updateScreenStatus(){
+    const el = document.getElementById('screenStatus');
+    const txt = document.getElementById('screenStatusText');
+    try {
+      const raw = localStorage.getItem(SCREEN_HB);
+      if (!raw) { el.classList.remove('online'); txt.textContent = '大屏未连接'; return; }
+      const hb = JSON.parse(raw);
+      if (Date.now() - hb.ts < 5000) {
+        el.classList.add('online'); txt.textContent = '大屏已连接';
+      } else {
+        el.classList.remove('online'); txt.textContent = '大屏未连接';
+      }
+    } catch(e){ el.classList.remove('online'); txt.textContent = '大屏未连接'; }
+  }
+  setInterval(updateScreenStatus, 2000);
+
+  // ---------- init ----------
+  loadState();
+  render();
+  updateScreenStatus();
+
+})();
+</script>
+
+</body>
+</html>
