@@ -545,9 +545,19 @@
       <div class="hint" style="margin-top:8px;font-size:11px;">⚠️ 重新生成票池会清空当前的排除标记和中奖记录</div>
     </div>
 
-    <!-- ② 奖品设置 -->
+    <!-- ② 活动设置 -->
     <div class="panel">
-      <h2><span class="num">2</span> 奖品设置</h2>
+      <h2><span class="num">2</span> 活动设置</h2>
+      <div class="field">
+        <label>活动名称（大屏标题）</label>
+        <input type="text" id="cfgEventName" value="票根抽奖" maxlength="12" placeholder="最多 12 个字">
+        <div class="hint">显示在大屏等待页中央的大标题，建议 4~8 个字</div>
+      </div>
+    </div>
+
+    <!-- ③ 奖品设置 -->
+    <div class="panel">
+      <h2><span class="num">3</span> 奖品设置</h2>
       <div class="field">
         <label>奖品名称</label>
         <input type="text" id="cfgPrizeName" value="一等奖">
@@ -563,9 +573,9 @@
       <img class="img-preview" id="prizeImagePreview" style="display:none;">
     </div>
 
-    <!-- ③ 抽奖记录 -->
+    <!-- ④ 抽奖记录 -->
     <div class="panel">
-      <h2><span class="num">3</span> 抽奖记录 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;" id="historyCount">0 位</span></h2>
+      <h2><span class="num">4</span> 抽奖记录 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;" id="historyCount">0 位</span></h2>
       <div class="history-list" id="historyList">
         <div class="history-empty">暂无中奖记录</div>
       </div>
@@ -673,6 +683,7 @@
     prefix: 'No.', pad: 3,
     excluded: [],          // array of ticket numbers (integers)
     won: [],               // [{num, time}]
+    eventName: '票根抽奖',
     prizeName: '一等奖',
     prizeSub: '活动现场限定',
     prizeImage: null,
@@ -728,6 +739,7 @@
     document.getElementById('cfgEnd').value = state.end;
     document.getElementById('cfgPrefix').value = state.prefix;
     document.getElementById('cfgPad').value = state.pad;
+    document.getElementById('cfgEventName').value = state.eventName || '票根抽奖';
     document.getElementById('cfgPrizeName').value = state.prizeName;
     document.getElementById('cfgPrizeSub').value = state.prizeSub;
 
@@ -882,6 +894,7 @@
   });
 
   // prize fields
+  document.getElementById('cfgEventName').addEventListener('input', e => { state.eventName = e.target.value; saveState(); });
   document.getElementById('cfgPrizeName').addEventListener('input', e => { state.prizeName = e.target.value; saveState(); });
   document.getElementById('cfgPrizeSub').addEventListener('input', e => { state.prizeSub = e.target.value; saveState(); });
   document.getElementById('prizeImageInput').addEventListener('change', (e) => {

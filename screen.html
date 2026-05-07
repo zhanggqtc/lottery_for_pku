@@ -132,7 +132,14 @@
     letter-spacing: 12px;
     margin-top: 16px;
     animation: shine 3s linear infinite;
+    max-width: 92vw;
+    text-align: center;
+    line-height: 1.15;
+    word-break: break-word;
   }
+  /* 长标题自动降字号 */
+  .idle-title.long { font-size: 56px; letter-spacing: 6px; }
+  .idle-title.xlong { font-size: 44px; letter-spacing: 4px; }
   @keyframes shine { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
   .idle-sub {
     font-size: 20px; color: #7a8fa6;
@@ -745,7 +752,7 @@
 <!-- Stage A: Idle -->
 <div class="stage-idle" id="stageIdle">
   <div class="idle-emoji">🎫</div>
-  <div class="idle-title">票 根 抽 奖</div>
+  <div class="idle-title" id="idleTitle">票 根 抽 奖</div>
   <div class="idle-sub">凭 票 根 序 号 现 场 抽 取</div>
   <div class="idle-prize-hint">本场奖品：<span class="prize-name" id="idlePrizeName">一等奖</span></div>
   <button class="big-start-btn" id="btnStart">开 始 抽 奖</button>
@@ -939,12 +946,30 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
+  function spaced(text){
+    // 中文字间留空：4 字以内每字间 1 空格；5-8 字保留原样间距更紧凑；超过则原样
+    if (!text) return '';
+    if (/^[\u4e00-\u9fa5]+$/.test(text) && text.length <= 4) {
+      return text.split('').join(' ');
+    }
+    return text;
+  }
+  function applyTitleSize(el, text){
+    el.classList.remove('long', 'xlong');
+    const len = (text || '').length;
+    if (len > 8) el.classList.add('xlong');
+    else if (len > 5) el.classList.add('long');
+  }
+
   function updateIdle(){
     const s = loadState();
     const histWrap = document.getElementById('idleHistoryWrap');
     const hist = document.getElementById('idleHistory');
     const histCnt = document.getElementById('idleHistoryCount');
+    const titleEl = document.getElementById('idleTitle');
     if (!s) {
+      titleEl.textContent = spaced('票根抽奖');
+      applyTitleSize(titleEl, '票根抽奖');
       document.getElementById('idlePrizeName').textContent = '一等奖';
       hist.innerHTML = '';
       histWrap.classList.add('empty');
@@ -955,6 +980,9 @@
       setStartBtnAvailable(0);
       return;
     }
+    const evName = s.eventName || '票根抽奖';
+    titleEl.textContent = spaced(evName);
+    applyTitleSize(titleEl, evName);
     document.getElementById('idlePrizeName').textContent = s.prizeName || '一等奖';
     document.getElementById('ticketPrefix').textContent = s.prefix || '';
 
