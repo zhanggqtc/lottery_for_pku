@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>座位抽奖 · 控制端 | Seat Lottery Admin</title>
+<title>票根抽奖 · 控制端 | Ticket Lottery Admin</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -46,8 +46,7 @@
   }
   .topbar .screen-status .dot {
     width: 8px; height: 8px; border-radius: 50%;
-    background: #ef4444;
-    box-shadow: 0 0 6px #ef4444;
+    background: #ef4444; box-shadow: 0 0 6px #ef4444;
   }
   .topbar .screen-status.online .dot {
     background: #4ade80; box-shadow: 0 0 6px #4ade80;
@@ -88,7 +87,7 @@
   /* Container */
   .container {
     max-width: 1200px; margin: 0 auto; padding: 20px;
-    display: grid; grid-template-columns: 360px 1fr; gap: 18px;
+    display: grid; grid-template-columns: 380px 1fr; gap: 18px;
   }
   @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
 
@@ -160,29 +159,6 @@
   .stat.gold .v { color: var(--gold); }
   .stat .l { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 0.5px; }
 
-  /* Big draw button */
-  .big-draw {
-    background: linear-gradient(135deg, var(--red), var(--gold));
-    color: #1a1608; border: none;
-    padding: 22px 30px;
-    font-size: 22px; font-weight: 900; letter-spacing: 8px;
-    border-radius: 12px; cursor: pointer;
-    width: 100%;
-    transition: all 0.3s;
-    box-shadow: 0 6px 30px rgba(255,70,85,0.3);
-    margin-bottom: 14px;
-    font-family: inherit;
-  }
-  .big-draw:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(255,70,85,0.5);
-  }
-  .big-draw:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
-  .big-draw.drawing {
-    background: linear-gradient(135deg, #888, #aaa);
-    pointer-events: none;
-  }
-
   /* Last-result big card */
   .last-result {
     background: linear-gradient(145deg, #1a0e12 0%, #0f0a0f 100%);
@@ -195,7 +171,7 @@
   .last-result .label {
     font-size: 11px; color: var(--gold); letter-spacing: 4px; font-weight: 700;
   }
-  .last-result .seat {
+  .last-result .ticket {
     font-size: 36px; font-weight: 900;
     background: linear-gradient(135deg, var(--gold), var(--red-2));
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
@@ -204,7 +180,7 @@
   }
   .last-result .empty { color: #4a5b70; font-size: 13px; padding: 10px; letter-spacing: 2px; }
 
-  /* Trigger hint card (replaces local draw button) */
+  /* Trigger hint card */
   .trigger-card {
     background:
       radial-gradient(circle at 50% 0%, rgba(0,212,255,0.12), transparent 70%),
@@ -253,94 +229,169 @@
     box-shadow: 0 6px 20px rgba(255,70,85,0.4);
   }
 
-  /* Seat map */
-  .seat-section {
+  /* ===== Section Adjuster ===== */
+  .section-adjuster {
     background: linear-gradient(145deg, #131c26 0%, #0e151d 100%);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 12px; padding: 18px;
     margin-bottom: 16px;
   }
-  .seat-section .header {
+  .section-adjuster .header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 14px; padding-bottom: 10px;
     border-bottom: 1px solid rgba(255,70,85,0.15);
-    flex-wrap: wrap; gap: 8px;
   }
-  .seat-section .header h2 {
+  .section-adjuster .header h2 {
     font-size: 13px; font-weight: 800; color: #fff; letter-spacing: 1px;
     display: flex; align-items: center; gap: 8px;
   }
-  .seat-section .header h2 .num {
+  .section-adjuster .header h2 .num {
     background: var(--red); color: #fff;
     width: 22px; height: 22px; border-radius: 4px;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 12px;
   }
-  .legend { display: flex; gap: 12px; align-items: center; font-size: 11px; color: var(--muted); }
+
+  /* Range slider */
+  .range-wrap {
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    padding: 14px 16px 16px;
+    margin-bottom: 12px;
+  }
+  .range-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .range-row .field input {
+    text-align: center;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .dual-slider {
+    position: relative;
+    height: 28px;
+    margin: 8px 0 18px;
+  }
+  .dual-slider .track {
+    position: absolute;
+    top: 12px;
+    left: 0; right: 0;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+  }
+  .dual-slider .range-fill {
+    position: absolute;
+    top: 12px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--red), var(--gold));
+    border-radius: 2px;
+  }
+  .dual-slider input[type=range] {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    width: 100%; height: 28px;
+    background: transparent;
+    appearance: none; -webkit-appearance: none;
+    pointer-events: none;
+    margin: 0;
+  }
+  .dual-slider input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: auto;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--red);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .dual-slider input[type=range]::-moz-range-thumb {
+    pointer-events: auto;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--red);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .range-display {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted);
+    font-family: 'SF Mono', Menlo, monospace;
+    margin-top: 6px;
+  }
+  .range-display .center {
+    color: var(--gold);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .section-actions {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .legend { display: flex; gap: 12px; align-items: center; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
   .legend-item { display: flex; align-items: center; gap: 5px; }
   .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
   .legend-dot.avail { background: rgba(74,222,128,0.5); border: 1px solid #4ade80; }
   .legend-dot.exc { background: rgba(255,70,85,0.4); border: 1px solid var(--red); }
   .legend-dot.won { background: rgba(255,215,0,0.5); border: 1px solid var(--gold); }
+  .legend-dot.in-range { background: rgba(255,215,0,0.18); border: 1px dashed var(--gold); }
 
-  .stage {
-    text-align: center;
-    background: linear-gradient(180deg, rgba(255,70,85,0.1), transparent);
-    border: 1px dashed rgba(255,70,85,0.3);
-    color: var(--muted);
-    padding: 6px 0; border-radius: 4px;
-    font-size: 11px; letter-spacing: 4px; margin-bottom: 12px;
-  }
-
-  .seat-wrap {
-    overflow: auto; max-height: 380px;
+  /* ticket grid */
+  .grid-wrap {
+    overflow: auto; max-height: 360px;
     padding: 8px 4px; border-radius: 8px;
     background: rgba(0,0,0,0.2);
   }
-  .seat-grid { display: inline-block; min-width: 100%; }
-  .seat-row { display: flex; align-items: center; margin-bottom: 4px; gap: 3px; }
-  .row-label {
-    flex-shrink: 0; width: 36px;
-    font-size: 11px; color: var(--muted);
-    text-align: right; padding-right: 6px; font-weight: 600;
+  .ticket-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 4px;
+    padding: 4px;
   }
-  .seat {
-    flex-shrink: 0; width: 22px; height: 22px;
-    border-radius: 3px;
+  .ticket {
+    aspect-ratio: 1.4 / 1;
+    border-radius: 4px;
     background: rgba(74,222,128,0.18);
     border: 1px solid rgba(74,222,128,0.4);
     cursor: pointer;
-    font-size: 9px;
+    font-size: 11px;
     display: flex; align-items: center; justify-content: center;
     color: #4ade80;
-    transition: all 0.15s; user-select: none;
+    transition: all 0.12s;
+    user-select: none;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-weight: 600;
   }
-  .seat:hover { transform: scale(1.15); z-index: 2; }
-  .seat.excluded {
+  .ticket:hover {
+    transform: scale(1.1); z-index: 2;
+  }
+  .ticket.excluded {
     background: rgba(255,70,85,0.25);
     border-color: var(--red);
-    color: #ff8a94; text-decoration: line-through;
+    color: #ff8a94;
+    text-decoration: line-through;
   }
-  .seat.won {
+  .ticket.won {
     background: rgba(255,215,0,0.4);
     border-color: var(--gold); color: var(--gold);
     box-shadow: 0 0 8px rgba(255,215,0,0.5);
+    cursor: default;
   }
-
-  .quick-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-  .quick-actions .pill {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    color: var(--muted);
-    padding: 4px 10px; border-radius: 12px;
-    font-size: 11px; cursor: pointer;
-    transition: all 0.2s;
+  .ticket.in-range {
+    outline: 2px dashed var(--gold);
+    outline-offset: -1px;
   }
-  .quick-actions .pill:hover { border-color: var(--red); color: #ff8a94; }
 
   /* History */
   .history-list {
-    max-height: 260px; overflow-y: auto;
+    max-height: 220px; overflow-y: auto;
     background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;
   }
   .history-empty { text-align: center; color: #4a5b70; font-size: 12px; padding: 30px 10px; }
@@ -360,7 +411,7 @@
     font-weight: 800; font-size: 11px;
     flex-shrink: 0;
   }
-  .history-item .seat-tag {
+  .history-item .ticket-tag {
     background: rgba(255,70,85,0.15);
     color: #ff8a94;
     padding: 2px 8px; border-radius: 4px;
@@ -433,19 +484,19 @@
 <body>
 
 <nav class="topbar">
-  <div class="logo">🎮 <span>Seat</span> <span class="accent">Lottery · Admin</span></div>
+  <div class="logo">🎫 <span>票根抽奖</span> <span class="accent">控制端</span></div>
   <div class="badge">ADMIN</div>
   <div class="screen-status" id="screenStatus">
     <span class="dot"></span><span id="screenStatusText">大屏未连接</span>
   </div>
   <div class="spacer"></div>
   <a href="./screen.html" target="_blank" class="btn-screen">🖥️ 打开大屏端</a>
-  <a href="https://github.com/" target="_blank" rel="noopener">GitHub ↗</a>
+  <a href="./index.html">← 返回首页</a>
 </nav>
 
 <div class="hero">
-  <h1>🎁 座位抽奖 · 控制端</h1>
-  <div class="sub">配置座位 · 排除座位 · 大屏实时联动 · 现场投影双屏方案</div>
+  <h1>🎫 票根抽奖 · 控制端</h1>
+  <div class="sub">配置票号范围 · 区段调整 · 大屏实时联动 · 现场投影双屏方案</div>
 </div>
 
 <div class="container">
@@ -456,34 +507,27 @@
       <div class="tip-card" style="margin-bottom:14px;">
         <strong>📺 双屏使用流程：</strong><br>
         <span class="step">1</span>点击右上角【🖥️ 打开大屏端】，把那个标签页拖到投影屏并按 F11 全屏<br>
-        <span class="step">2</span>在本页配置座位、排除已占座位、上传奖品图<br>
+        <span class="step">2</span>在本页配置票号范围、调整可抽区段、上传奖品图<br>
         <span class="step">3</span>主持人在大屏前直接点【开始抽奖】按钮（或按空格键）启动抽奖
       </div>
     </div>
 
+    <!-- ① 票号配置 -->
     <div class="panel">
-      <h2><span class="num">1</span> 座位配置</h2>
+      <h2><span class="num">1</span> 票号配置</h2>
       <div class="form-row">
-        <div class="field"><label>排数</label><input type="number" id="cfgRows" min="1" max="200" value="20"></div>
-        <div class="field"><label>每排座位数</label><input type="number" id="cfgCols" min="1" max="200" value="30"></div>
+        <div class="field"><label>起始票号</label><input type="number" id="cfgStart" min="0" max="99999" value="1"></div>
+        <div class="field"><label>结束票号</label><input type="number" id="cfgEnd" min="0" max="99999" value="200"></div>
       </div>
       <div class="form-row">
-        <div class="field"><label>起始排号</label><input type="number" id="cfgRowStart" value="1"></div>
-        <div class="field"><label>起始座号</label><input type="number" id="cfgColStart" value="1"></div>
+        <div class="field"><label>票号前缀</label><input type="text" id="cfgPrefix" value="No." placeholder="No. / # / 留空"></div>
+        <div class="field"><label>显示位数（自动补零）</label><input type="number" id="cfgPad" min="1" max="6" value="3"></div>
       </div>
-      <button class="btn btn-primary" id="btnApplyCfg" style="width:100%;">应用配置 / 重置座位</button>
-
-      <div class="field" style="margin-top:14px;">
-        <label>批量排除座位（可选）</label>
-        <textarea id="cfgExcludeText" placeholder="格式示例（任选一种或混用，逗号分隔）：&#10;1-1, 1-2, 1-3&#10;1排5-10座&#10;2-5~2-12&#10;整排：3, 4&#10;留空则不批量排除"></textarea>
-        <div class="hint">支持：单个座位 1-1 / 范围 2-5~2-12 / 整排排除（直接写排号 3）。点击下方座位图也可单独切换。</div>
-      </div>
-      <div class="btn-row" style="margin-top:8px;">
-        <button class="btn btn-ghost" id="btnApplyExclude" style="flex:1;">应用批量排除</button>
-        <button class="btn btn-danger" id="btnClearExclude">清空排除</button>
-      </div>
+      <button class="btn btn-primary" id="btnApplyCfg" style="width:100%;">应用配置 / 重新生成票池</button>
+      <div class="hint" style="margin-top:8px;font-size:11px;">⚠️ 重新生成票池会清空当前的排除标记和中奖记录</div>
     </div>
 
+    <!-- ② 奖品设置 -->
     <div class="panel">
       <h2><span class="num">2</span> 奖品设置</h2>
       <div class="field">
@@ -501,6 +545,7 @@
       <img class="img-preview" id="prizeImagePreview" style="display:none;">
     </div>
 
+    <!-- ③ 抽奖记录 -->
     <div class="panel">
       <h2><span class="num">3</span> 抽奖记录 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;" id="historyCount">0 位</span></h2>
       <div class="history-list" id="historyList">
@@ -515,48 +560,79 @@
 
   <!-- RIGHT -->
   <div>
-    <!-- Last result big -->
-    <div class="last-result" id="lastResult">
-      <div class="label">★ 最新中奖座位 ★</div>
-      <div class="seat empty" id="lastSeatBig">尚未开始抽奖</div>
+    <!-- Last result -->
+    <div class="last-result">
+      <div class="label">★ 最新中奖票号 ★</div>
+      <div class="ticket empty" id="lastTicketBig">尚未开始抽奖</div>
       <div style="font-size:12px;color:var(--muted);">中奖结果会自动同步显示在此处</div>
     </div>
 
-    <!-- Trigger hint card (replaces big draw button) -->
+    <!-- Trigger hint -->
     <div class="trigger-card">
       <div class="trigger-card-title">🎬 抽奖在大屏端启动</div>
       <div class="trigger-card-desc">
-        本页只负责<strong>配置座位</strong>与<strong>查看记录</strong>。<br>
+        本页只负责<strong>配置票号</strong>与<strong>查看记录</strong>。<br>
         请在大屏端点击【开始抽奖】按钮，或按 <kbd>空格</kbd> / <kbd>Enter</kbd> 抽奖。
       </div>
       <a href="./screen.html" target="_blank" class="trigger-card-btn">🖥️ 打开 / 切换到大屏端</a>
     </div>
 
+    <!-- Stats -->
     <div class="stats">
-      <div class="stat green"><div class="v" id="statAvailable">0</div><div class="l">可抽座位</div></div>
+      <div class="stat green"><div class="v" id="statAvailable">0</div><div class="l">可抽票号</div></div>
       <div class="stat red"><div class="v" id="statExcluded">0</div><div class="l">已排除</div></div>
       <div class="stat gold"><div class="v" id="statWon">0</div><div class="l">已中奖</div></div>
     </div>
 
-    <div class="seat-section">
+    <!-- Section adjuster + grid -->
+    <div class="section-adjuster">
       <div class="header">
-        <h2><span class="num">📍</span> 座位图（点击切换排除）</h2>
+        <h2><span class="num">📍</span> 票号网格 · 区段调整</h2>
         <div class="legend">
           <span class="legend-item"><span class="legend-dot avail"></span>可抽</span>
           <span class="legend-item"><span class="legend-dot exc"></span>已排除</span>
           <span class="legend-item"><span class="legend-dot won"></span>已中奖</span>
+          <span class="legend-item"><span class="legend-dot in-range"></span>当前区段</span>
         </div>
       </div>
-      <div class="quick-actions">
-        <span style="font-size:11px;color:var(--muted);align-self:center;">快捷：</span>
-        <span class="pill" data-quick="all-clear">全部可抽</span>
-        <span class="pill" data-quick="invert">反选排除</span>
-        <span class="pill" data-quick="first-row">排除第1排</span>
-        <span class="pill" data-quick="last-row">排除最后1排</span>
-        <span class="pill" data-quick="aisle">排除两端各2座</span>
+
+      <!-- Range slider -->
+      <div class="range-wrap">
+        <div class="range-row">
+          <div class="field"><label>区段起始号</label><input type="number" id="rangeFrom" value="1"></div>
+          <div class="field"><label>区段结束号</label><input type="number" id="rangeTo" value="50"></div>
+        </div>
+        <div class="dual-slider" id="dualSlider">
+          <div class="track"></div>
+          <div class="range-fill" id="rangeFill"></div>
+          <input type="range" id="sliderFrom" min="1" max="200" value="1">
+          <input type="range" id="sliderTo" min="1" max="200" value="50">
+        </div>
+        <div class="range-display">
+          <span id="rangeMin">1</span>
+          <span class="center" id="rangeCenter">区段：1 ~ 50（共 50 个）</span>
+          <span id="rangeMax">200</span>
+        </div>
       </div>
-      <div class="stage">舞 台 / 表 演 区</div>
-      <div class="seat-wrap"><div class="seat-grid" id="seatGrid"></div></div>
+
+      <!-- Section actions -->
+      <div class="section-actions">
+        <button class="btn btn-danger" id="btnExcludeRange">排除该区段</button>
+        <button class="btn btn-ghost" id="btnRestoreRange">恢复该区段</button>
+        <button class="btn btn-primary" id="btnKeepOnlyRange">只保留该区段</button>
+      </div>
+
+      <!-- Quick presets -->
+      <div class="btn-row" style="margin-bottom:14px;">
+        <span style="font-size:11px;color:var(--muted);align-self:center;margin-right:4px;">快捷：</span>
+        <button class="btn btn-ghost" data-preset="all-clear" style="padding:5px 10px;font-size:11px;">全部可抽</button>
+        <button class="btn btn-ghost" data-preset="invert" style="padding:5px 10px;font-size:11px;">反选排除</button>
+        <button class="btn btn-ghost" data-preset="odd" style="padding:5px 10px;font-size:11px;">排除奇数号</button>
+        <button class="btn btn-ghost" data-preset="even" style="padding:5px 10px;font-size:11px;">排除偶数号</button>
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">点击下方任一票号可单独切换排除状态：</div>
+      <div class="grid-wrap"><div class="ticket-grid" id="ticketGrid"></div></div>
     </div>
   </div>
 </div>
@@ -564,29 +640,31 @@
 <div class="toast" id="toast"></div>
 
 <div class="footer">
-  座位抽奖 · 控制端 &nbsp;|&nbsp; 开源在 GitHub &nbsp;|&nbsp; 大屏端独立显示，请保持本页与大屏页同时打开
+  票根抽奖工具 · 控制端 &nbsp;|&nbsp; 大屏端独立显示，请保持本页与大屏页同时打开
 </div>
 
 <script>
 (function(){
   'use strict';
-  // ---------- shared keys ----------
   const STATE_KEY = 'seat-lottery-state-v1';
   const CMD_KEY   = 'seat-lottery-cmd-v1';
   const SCREEN_HB = 'seat-lottery-screen-hb-v1';
 
   const state = {
-    rows: 20, cols: 30, rowStart: 1, colStart: 1,
-    excluded: [],       // array for serialization
-    won: [],
+    start: 1, end: 200,
+    prefix: 'No.', pad: 3,
+    excluded: [],          // array of ticket numbers (integers)
+    won: [],               // [{num, time}]
     prizeName: '一等奖',
     prizeSub: '活动现场限定',
     prizeImage: null,
-    drawing: false,     // is draw animation playing on screen
-    lastWinner: null,   // latest winner shown on screen
+    drawing: false,
+    lastWinner: null,
+    // UI-only (not persisted): current section selection
   };
+  // section state (UI only)
+  let rangeFrom = 1, rangeTo = 50;
 
-  function key(r,c){ return r+'-'+c; }
   function saveState(){
     try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e){}
   }
@@ -600,11 +678,16 @@
       if (!Array.isArray(state.won)) state.won = [];
     } catch(e){}
   }
-  function isExcluded(k){ return state.excluded.indexOf(k) !== -1; }
-  function addExcluded(k){ if (!isExcluded(k)) state.excluded.push(k); }
-  function removeExcluded(k){
-    const i = state.excluded.indexOf(k);
+  function isExcluded(n){ return state.excluded.indexOf(n) !== -1; }
+  function addExcluded(n){ if (!isExcluded(n)) state.excluded.push(n); }
+  function removeExcluded(n){
+    const i = state.excluded.indexOf(n);
     if (i !== -1) state.excluded.splice(i,1);
+  }
+
+  function fmt(n){
+    const padded = String(n).padStart(state.pad || 1, '0');
+    return (state.prefix || '') + padded;
   }
 
   function sendCmd(type, payload){
@@ -623,10 +706,10 @@
 
   // ---------- render ----------
   function render(){
-    document.getElementById('cfgRows').value = state.rows;
-    document.getElementById('cfgCols').value = state.cols;
-    document.getElementById('cfgRowStart').value = state.rowStart;
-    document.getElementById('cfgColStart').value = state.colStart;
+    document.getElementById('cfgStart').value = state.start;
+    document.getElementById('cfgEnd').value = state.end;
+    document.getElementById('cfgPrefix').value = state.prefix;
+    document.getElementById('cfgPad').value = state.pad;
     document.getElementById('cfgPrizeName').value = state.prizeName;
     document.getElementById('cfgPrizeSub').value = state.prizeSub;
 
@@ -634,46 +717,73 @@
     if (state.prizeImage) { prev.src = state.prizeImage; prev.style.display = 'block'; }
     else prev.style.display = 'none';
 
-    renderSeats();
+    refreshSliders();
+    renderGrid();
     renderStats();
     renderHistory();
     renderLastResult();
   }
 
-  function renderSeats(){
-    const grid = document.getElementById('seatGrid');
-    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
+  function refreshSliders(){
+    const min = state.start, max = state.end;
+    if (rangeFrom < min || rangeFrom > max) rangeFrom = min;
+    if (rangeTo < min || rangeTo > max) rangeTo = max;
+    if (rangeFrom > rangeTo) rangeFrom = rangeTo;
+    const sFrom = document.getElementById('sliderFrom');
+    const sTo = document.getElementById('sliderTo');
+    sFrom.min = sTo.min = min;
+    sFrom.max = sTo.max = max;
+    sFrom.value = rangeFrom;
+    sTo.value = rangeTo;
+    document.getElementById('rangeFrom').value = rangeFrom;
+    document.getElementById('rangeTo').value = rangeTo;
+    document.getElementById('rangeMin').textContent = min;
+    document.getElementById('rangeMax').textContent = max;
+    const total = max - min + 1;
+    document.getElementById('rangeCenter').textContent =
+      `区段：${rangeFrom} ~ ${rangeTo}（共 ${rangeTo - rangeFrom + 1} 个 · 全池 ${total}）`;
+    // Fill
+    const fill = document.getElementById('rangeFill');
+    if (max > min) {
+      const lp = ((rangeFrom - min) / (max - min)) * 100;
+      const rp = ((rangeTo - min) / (max - min)) * 100;
+      fill.style.left = lp + '%';
+      fill.style.width = (rp - lp) + '%';
+    } else {
+      fill.style.left = '0%'; fill.style.width = '100%';
+    }
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById('ticketGrid');
+    const wonSet = new Set(state.won.map(w => w.num));
     const excSet = new Set(state.excluded);
     const frags = [];
-    for (let i = 0; i < state.rows; i++) {
-      const r = state.rowStart + i;
-      const cells = [`<span class="row-label">${r}排</span>`];
-      for (let j = 0; j < state.cols; j++) {
-        const c = state.colStart + j;
-        const k = key(r,c);
-        let cls = 'seat';
-        if (wonSet.has(k)) cls += ' won';
-        else if (excSet.has(k)) cls += ' excluded';
-        cells.push(`<span class="${cls}" data-r="${r}" data-c="${c}" title="${r}排${c}座">${c}</span>`);
-      }
-      frags.push(`<div class="seat-row">${cells.join('')}</div>`);
+    const total = state.end - state.start + 1;
+    if (total > 2000) {
+      grid.innerHTML = `<div style="color:#ff8a94;padding:20px;text-align:center;">⚠️ 票池过大（${total}），不渲染网格。请缩小范围。</div>`;
+      return;
+    }
+    for (let n = state.start; n <= state.end; n++) {
+      let cls = 'ticket';
+      if (wonSet.has(n)) cls += ' won';
+      else if (excSet.has(n)) cls += ' excluded';
+      if (n >= rangeFrom && n <= rangeTo) cls += ' in-range';
+      frags.push(`<span class="${cls}" data-n="${n}" title="${fmt(n)}">${String(n).padStart(state.pad,'0')}</span>`);
     }
     grid.innerHTML = frags.join('');
   }
 
   function renderStats(){
-    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
+    const wonSet = new Set(state.won.map(w => w.num));
     const excSet = new Set(state.excluded);
-    let available = 0;
-    for (let i = 0; i < state.rows; i++) {
-      for (let j = 0; j < state.cols; j++) {
-        const r = state.rowStart + i, c = state.colStart + j;
-        const k = key(r,c);
-        if (!excSet.has(k) && !wonSet.has(k)) available++;
-      }
+    let avail = 0;
+    for (let n = state.start; n <= state.end; n++) {
+      if (!excSet.has(n) && !wonSet.has(n)) avail++;
     }
-    document.getElementById('statAvailable').textContent = available;
-    document.getElementById('statExcluded').textContent = state.excluded.filter(k => !wonSet.has(k)).length;
+    document.getElementById('statAvailable').textContent = avail;
+    const excCount = state.excluded.filter(n => !wonSet.has(n) && n >= state.start && n <= state.end).length;
+    document.getElementById('statExcluded').textContent = excCount;
     document.getElementById('statWon').textContent = wonSet.size;
     document.getElementById('historyCount').textContent = wonSet.size + ' 位';
   }
@@ -690,17 +800,17 @@
       const ts = String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
       return `<div class="history-item">
         <span class="idx">${totalIdx}</span>
-        <span class="seat-tag">${w.row}排 ${w.col}座</span>
+        <span class="ticket-tag">${fmt(w.num)}</span>
         <span class="time">${ts}</span>
       </div>`;
     }).join('');
   }
 
   function renderLastResult(){
-    const el = document.getElementById('lastSeatBig');
+    const el = document.getElementById('lastTicketBig');
     if (state.won.length) {
       const last = state.won[state.won.length - 1];
-      el.textContent = `${last.row} 排 ${last.col} 座`;
+      el.textContent = fmt(last.num);
       el.classList.remove('empty');
     } else {
       el.textContent = '尚未开始抽奖';
@@ -708,38 +818,51 @@
     }
   }
 
-  // ---------- seat click ----------
-  document.getElementById('seatGrid').addEventListener('click', (e) => {
+  // ---------- ticket click ----------
+  document.getElementById('ticketGrid').addEventListener('click', (e) => {
     if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
-    const seat = e.target.closest('.seat');
-    if (!seat) return;
-    if (seat.classList.contains('won')) { toast('已中奖座位无法切换'); return; }
-    const r = +seat.dataset.r, c = +seat.dataset.c;
-    const k = key(r,c);
-    if (isExcluded(k)) removeExcluded(k); else addExcluded(k);
+    const t = e.target.closest('.ticket');
+    if (!t) return;
+    if (t.classList.contains('won')) { toast('已中奖票号无法切换'); return; }
+    const n = +t.dataset.n;
+    if (isExcluded(n)) removeExcluded(n); else addExcluded(n);
     saveState();
-    renderSeats(); renderStats();
+    renderGrid(); renderStats();
   });
 
   // ---------- config apply ----------
   document.getElementById('btnApplyCfg').addEventListener('click', () => {
     if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
-    const rows = +document.getElementById('cfgRows').value;
-    const cols = +document.getElementById('cfgCols').value;
-    const rs = +document.getElementById('cfgRowStart').value;
-    const cs = +document.getElementById('cfgColStart').value;
-    if (rows < 1 || cols < 1 || rows > 200 || cols > 200) { toast('排数/座数范围 1~200'); return; }
-    state.rows = rows; state.cols = cols; state.rowStart = rs; state.colStart = cs;
-    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
-    state.excluded = state.excluded.filter(k => {
-      const [r,c] = k.split('-').map(Number);
-      return r >= rs && r < rs+rows && c >= cs && c < cs+cols && !wonSet.has(k);
-    });
-    saveState(); render();
-    toast('座位配置已更新');
+    const start = +document.getElementById('cfgStart').value;
+    const end = +document.getElementById('cfgEnd').value;
+    const prefix = document.getElementById('cfgPrefix').value;
+    const pad = +document.getElementById('cfgPad').value;
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < 0) {
+      toast('票号必须为非负整数'); return;
+    }
+    if (end < start) { toast('结束票号不能小于起始票号'); return; }
+    const total = end - start + 1;
+    if (total > 5000) { toast('票池过大（>5000），请缩小范围'); return; }
+    if (pad < 1 || pad > 6) { toast('显示位数范围 1~6'); return; }
+
+    const wonCount = state.won.length, excCount = state.excluded.length;
+    if ((wonCount > 0 || excCount > 0) &&
+        !confirm(`重新生成票池将清空当前的 ${excCount} 个排除标记和 ${wonCount} 条中奖记录，确定继续？`)) {
+      return;
+    }
+    state.start = start; state.end = end;
+    state.prefix = prefix; state.pad = pad;
+    state.excluded = [];
+    state.won = [];
+    state.lastWinner = null;
+    rangeFrom = start; rangeTo = end;
+    saveState();
+    sendCmd('reset');
+    render();
+    toast(`票池已重置：${fmt(start)} ~ ${fmt(end)}（共 ${total} 个）`);
   });
 
-  // ---------- prize ----------
+  // prize fields
   document.getElementById('cfgPrizeName').addEventListener('input', e => { state.prizeName = e.target.value; saveState(); });
   document.getElementById('cfgPrizeSub').addEventListener('input', e => { state.prizeSub = e.target.value; saveState(); });
   document.getElementById('prizeImageInput').addEventListener('change', (e) => {
@@ -758,128 +881,99 @@
     reader.readAsDataURL(file);
   });
 
-  // ---------- exclude parser ----------
-  function parseExcludeText(text){
-    if (!text) return { added: 0, errors: [] };
-    const tokens = text.replace(/[，；;]/g, ',').split(/[,\n]+/).map(s=>s.trim()).filter(Boolean);
-    let added = 0; const errors = [];
-    const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
-    const inRange = (r, c) =>
-      r >= state.rowStart && r < state.rowStart + state.rows &&
-      c >= state.colStart && c < state.colStart + state.cols;
+  // ---------- range / slider sync ----------
+  function clampRange(){
+    if (rangeFrom < state.start) rangeFrom = state.start;
+    if (rangeTo > state.end) rangeTo = state.end;
+    if (rangeFrom > rangeTo) rangeFrom = rangeTo;
+  }
+  document.getElementById('sliderFrom').addEventListener('input', e => {
+    rangeFrom = +e.target.value;
+    if (rangeFrom > rangeTo) rangeTo = rangeFrom;
+    refreshSliders(); renderGrid();
+  });
+  document.getElementById('sliderTo').addEventListener('input', e => {
+    rangeTo = +e.target.value;
+    if (rangeTo < rangeFrom) rangeFrom = rangeTo;
+    refreshSliders(); renderGrid();
+  });
+  document.getElementById('rangeFrom').addEventListener('change', e => {
+    rangeFrom = +e.target.value; clampRange(); refreshSliders(); renderGrid();
+  });
+  document.getElementById('rangeTo').addEventListener('change', e => {
+    rangeTo = +e.target.value; clampRange(); refreshSliders(); renderGrid();
+  });
 
-    for (const tok of tokens) {
-      const cn = tok.match(/^(\d+)\s*排\s*(\d+)\s*[\-~~到至]\s*(\d+)\s*座?$/);
-      const cnSingle = tok.match(/^(\d+)\s*排\s*(\d+)\s*座?$/);
-      const cnRow = tok.match(/^(\d+)\s*排$/);
-      const range = tok.match(/^(\d+)-(\d+)\s*[~~]\s*(\d+)-(\d+)$/);
-      const single = tok.match(/^(\d+)-(\d+)$/);
-      const rowOnly = tok.match(/^(\d+)$/);
-
-      if (range) {
-        const r1=+range[1], c1=+range[2], r2=+range[3], c2=+range[4];
-        if (r1 !== r2) { errors.push(tok+' (跨排范围暂不支持)'); continue; }
-        const lo = Math.min(c1,c2), hi = Math.max(c1,c2);
-        for (let c = lo; c <= hi; c++) {
-          if (inRange(r1,c) && !wonSet.has(key(r1,c))) { addExcluded(key(r1,c)); added++; }
-        }
-      } else if (cn && +cn[1]) {
-        const r=+cn[1], lo=Math.min(+cn[2],+cn[3]), hi=Math.max(+cn[2],+cn[3]);
-        for (let c = lo; c <= hi; c++) {
-          if (inRange(r,c) && !wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
-        }
-      } else if (single) {
-        const r=+single[1], c=+single[2];
-        if (inRange(r,c) && !wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
-        else if (!inRange(r,c)) errors.push(tok+' (越界)');
-      } else if (cnSingle) {
-        const r=+cnSingle[1], c=+cnSingle[2];
-        if (inRange(r,c) && !wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
-        else if (!inRange(r,c)) errors.push(tok+' (越界)');
-      } else if (rowOnly || cnRow) {
-        const r = +(rowOnly ? rowOnly[1] : cnRow[1]);
-        if (r < state.rowStart || r >= state.rowStart + state.rows) { errors.push(tok+' (排号越界)'); continue; }
-        for (let j = 0; j < state.cols; j++) {
-          const c = state.colStart + j;
-          if (!wonSet.has(key(r,c))) { addExcluded(key(r,c)); added++; }
-        }
-      } else {
-        errors.push(tok+' (格式无法识别)');
+  // ---------- section actions ----------
+  document.getElementById('btnExcludeRange').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    const wonSet = new Set(state.won.map(w => w.num));
+    let cnt = 0;
+    for (let n = rangeFrom; n <= rangeTo; n++) {
+      if (!wonSet.has(n) && !isExcluded(n)) { addExcluded(n); cnt++; }
+    }
+    saveState(); renderGrid(); renderStats();
+    toast(`已排除区段 ${rangeFrom}~${rangeTo}（新增 ${cnt} 个）`);
+  });
+  document.getElementById('btnRestoreRange').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    let cnt = 0;
+    for (let n = rangeFrom; n <= rangeTo; n++) {
+      if (isExcluded(n)) { removeExcluded(n); cnt++; }
+    }
+    saveState(); renderGrid(); renderStats();
+    toast(`已恢复区段 ${rangeFrom}~${rangeTo}（${cnt} 个）`);
+  });
+  document.getElementById('btnKeepOnlyRange').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    if (!confirm(`确定只保留 ${rangeFrom}~${rangeTo}？区段外的票号将全部被排除。`)) return;
+    const wonSet = new Set(state.won.map(w => w.num));
+    state.excluded = [];
+    let cnt = 0;
+    for (let n = state.start; n <= state.end; n++) {
+      if ((n < rangeFrom || n > rangeTo) && !wonSet.has(n)) {
+        state.excluded.push(n); cnt++;
       }
     }
-    return { added, errors };
-  }
-  document.getElementById('btnApplyExclude').addEventListener('click', () => {
-    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
-    const text = document.getElementById('cfgExcludeText').value;
-    const { added, errors } = parseExcludeText(text);
-    saveState(); renderSeats(); renderStats();
-    if (errors.length) toast(`已排除 ${added} 个座位，${errors.length} 项识别失败`);
-    else toast(`已排除 ${added} 个座位`);
-  });
-  document.getElementById('btnClearExclude').addEventListener('click', () => {
-    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
-    state.excluded = []; saveState(); renderSeats(); renderStats();
-    toast('已清空所有排除');
+    saveState(); renderGrid(); renderStats();
+    toast(`已只保留 ${rangeFrom}~${rangeTo}（排除区段外 ${cnt} 个）`);
   });
 
-  // ---------- quick actions ----------
-  document.querySelectorAll('.pill').forEach(p => {
-    p.addEventListener('click', () => {
+  // ---------- presets ----------
+  document.querySelectorAll('[data-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
       if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
-      const action = p.dataset.quick;
-      const wonSet = new Set(state.won.map(w => key(w.row, w.col)));
-      if (action === 'all-clear') { state.excluded = []; toast('所有座位已设为可抽'); }
-      else if (action === 'invert') {
+      const action = btn.dataset.preset;
+      const wonSet = new Set(state.won.map(w => w.num));
+      if (action === 'all-clear') {
+        state.excluded = []; toast('所有票号已设为可抽');
+      } else if (action === 'invert') {
         const ne = [];
-        for (let i = 0; i < state.rows; i++) for (let j = 0; j < state.cols; j++) {
-          const r = state.rowStart + i, c = state.colStart + j;
-          const k = key(r,c);
-          if (wonSet.has(k)) continue;
-          if (!isExcluded(k)) ne.push(k);
+        for (let n = state.start; n <= state.end; n++) {
+          if (wonSet.has(n)) continue;
+          if (!isExcluded(n)) ne.push(n);
         }
         state.excluded = ne; toast('已反选排除状态');
-      }
-      else if (action === 'first-row') {
-        const r = state.rowStart;
-        for (let j = 0; j < state.cols; j++) {
-          const c = state.colStart + j;
-          if (!wonSet.has(key(r,c))) addExcluded(key(r,c));
+      } else if (action === 'odd') {
+        for (let n = state.start; n <= state.end; n++) {
+          if (n % 2 === 1 && !wonSet.has(n)) addExcluded(n);
         }
-        toast('已排除第 ' + r + ' 排');
-      }
-      else if (action === 'last-row') {
-        const r = state.rowStart + state.rows - 1;
-        for (let j = 0; j < state.cols; j++) {
-          const c = state.colStart + j;
-          if (!wonSet.has(key(r,c))) addExcluded(key(r,c));
+        toast('已排除所有奇数号');
+      } else if (action === 'even') {
+        for (let n = state.start; n <= state.end; n++) {
+          if (n % 2 === 0 && !wonSet.has(n)) addExcluded(n);
         }
-        toast('已排除第 ' + r + ' 排');
+        toast('已排除所有偶数号');
       }
-      else if (action === 'aisle') {
-        for (let i = 0; i < state.rows; i++) {
-          const r = state.rowStart + i;
-          for (let off = 0; off < 2; off++) {
-            const cL = state.colStart + off;
-            const cR = state.colStart + state.cols - 1 - off;
-            if (!wonSet.has(key(r,cL))) addExcluded(key(r,cL));
-            if (!wonSet.has(key(r,cR))) addExcluded(key(r,cR));
-          }
-        }
-        toast('已排除每排两端各 2 座');
-      }
-      saveState(); renderSeats(); renderStats();
+      saveState(); renderGrid(); renderStats();
     });
   });
 
-  // ---------- DRAW (now triggered on screen, not here) ----------
-  // Admin page is configuration-only; the big screen page picks the winner and runs the animation.
-
-  // ---------- history actions ----------
+  // ---------- history ----------
   document.getElementById('btnClearHistory').addEventListener('click', () => {
     if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
     if (!state.won.length) { toast('无记录可清空'); return; }
-    if (!confirm('确定清空所有中奖记录？已中奖的座位将变回可抽状态。')) return;
+    if (!confirm('确定清空所有中奖记录？已中奖的票号将变回可抽状态。')) return;
     state.won = []; state.lastWinner = null;
     saveState();
     sendCmd('reset');
@@ -888,25 +982,24 @@
   });
   document.getElementById('btnExport').addEventListener('click', () => {
     if (!state.won.length) { toast('暂无记录可导出'); return; }
-    const lines = ['序号,排,座,中奖时间'];
+    const lines = ['序号,票号,中奖时间'];
     state.won.forEach((w, idx) => {
       const t = new Date(w.time);
       const ts = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
-      lines.push(`${idx+1},${w.row},${w.col},${ts}`);
+      lines.push(`${idx+1},${fmt(w.num)},${ts}`);
     });
     const csv = '\uFEFF' + lines.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `seat-lottery-${new Date().toISOString().slice(0,10)}.csv`;
+    a.href = url; a.download = `ticket-lottery-${new Date().toISOString().slice(0,10)}.csv`;
     a.click(); URL.revokeObjectURL(url);
     toast('已导出 CSV');
   });
 
-  // ---------- listen storage events ----------
+  // ---------- listen storage ----------
   window.addEventListener('storage', (e) => {
     if (e.key === STATE_KEY) {
-      // state updated by screen page (won list, drawing flag)
       loadState();
       render();
     } else if (e.key === SCREEN_HB) {
@@ -914,7 +1007,7 @@
     }
   });
 
-  // ---------- screen heartbeat detection ----------
+  // ---------- screen heartbeat ----------
   function updateScreenStatus(){
     const el = document.getElementById('screenStatus');
     const txt = document.getElementById('screenStatusText');
@@ -933,6 +1026,13 @@
 
   // ---------- init ----------
   loadState();
+  // initial range mirrors full pool if first visit
+  if (state.won.length === 0 && state.excluded.length === 0) {
+    rangeFrom = state.start;
+    rangeTo = Math.min(state.start + 49, state.end);
+  } else {
+    rangeFrom = state.start; rangeTo = state.end;
+  }
   render();
   updateScreenStatus();
 

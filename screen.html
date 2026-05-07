@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>座位抽奖 · 大屏端 | Seat Lottery Screen</title>
+<title>票根抽奖 · 大屏端 | Ticket Lottery Screen</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -49,7 +49,7 @@
     z-index: 2; pointer-events: none;
   }
 
-  /* Top brand bar */
+  /* Top brand */
   .top-brand {
     position: fixed; top: 28px; left: 0; right: 0;
     z-index: 10;
@@ -74,7 +74,7 @@
     letter-spacing: 4px;
   }
 
-  /* Bottom corner: status & connection */
+  /* Bottom bar */
   .bottom-bar {
     position: fixed; bottom: 20px; left: 0; right: 0;
     z-index: 10;
@@ -105,8 +105,6 @@
   }
   .stat-mini b { color: #ffd700; font-size: 15px; margin-right: 4px; }
 
-  /* ============ STAGES ============ */
-
   /* Stage A: idle */
   .stage-idle {
     position: fixed; inset: 0; z-index: 5;
@@ -114,10 +112,11 @@
     align-items: center; justify-content: center;
     text-align: center;
     transition: opacity 0.5s;
+    padding: 100px 20px 100px;
   }
   .stage-idle.hide { opacity: 0; pointer-events: none; }
   .idle-emoji {
-    font-size: 120px;
+    font-size: 100px;
     filter: drop-shadow(0 0 30px rgba(255,215,0,0.5));
     animation: floaty 4s ease-in-out infinite;
   }
@@ -126,22 +125,22 @@
     50% { transform: translateY(-20px) rotate(3deg); }
   }
   .idle-title {
-    font-size: 80px; font-weight: 900;
+    font-size: 72px; font-weight: 900;
     background: linear-gradient(135deg, #ff4655 0%, #ffd700 50%, #ff4655 100%);
     background-size: 200% 100%;
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     letter-spacing: 12px;
-    margin-top: 20px;
+    margin-top: 16px;
     animation: shine 3s linear infinite;
   }
   @keyframes shine { 0%{background-position:0% 50%} 100%{background-position:200% 50%} }
   .idle-sub {
-    font-size: 22px; color: #7a8fa6;
+    font-size: 20px; color: #7a8fa6;
     letter-spacing: 8px; margin-top: 12px;
     font-weight: 300;
   }
   .idle-prize-hint {
-    margin-top: 50px;
+    margin-top: 36px;
     font-size: 18px; color: #c5d0dc;
     letter-spacing: 4px;
   }
@@ -151,25 +150,15 @@
     font-weight: 800; font-size: 24px;
     margin-left: 10px; letter-spacing: 2px;
   }
-  .idle-call {
-    margin-top: 60px;
-    background: rgba(255,70,85,0.1);
-    border: 1px solid rgba(255,70,85,0.3);
-    color: #ff8a94;
-    padding: 14px 36px;
-    border-radius: 30px;
-    font-size: 16px; letter-spacing: 4px;
-    animation: pulse 2s infinite;
-  }
 
-  /* Big start button on screen */
+  /* Big start button */
   .big-start-btn {
-    margin-top: 56px;
+    margin-top: 48px;
     background: linear-gradient(135deg, var(--red) 0%, var(--gold) 100%);
     color: #1a0f00;
     border: none;
-    padding: 28px 96px;
-    font-size: 38px; font-weight: 900;
+    padding: 26px 88px;
+    font-size: 36px; font-weight: 900;
     letter-spacing: 16px;
     border-radius: 18px;
     cursor: pointer;
@@ -212,7 +201,7 @@
     100% { transform: translateX(100%); }
   }
   .start-hint {
-    margin-top: 20px;
+    margin-top: 18px;
     font-size: 14px; color: #5a6b80;
     letter-spacing: 4px;
   }
@@ -225,7 +214,7 @@
     color: #c5d0dc;
   }
   .no-pool-hint {
-    margin-top: 56px;
+    margin-top: 48px;
     background: rgba(255,70,85,0.12);
     border: 1px solid rgba(255,70,85,0.4);
     color: #ff8a94;
@@ -235,13 +224,14 @@
     display: none;
   }
   .no-pool-hint.show { display: block; }
+
   .idle-history {
-    margin-top: 36px;
+    margin-top: 28px;
     display: flex; flex-wrap: wrap; gap: 8px;
     justify-content: center;
     max-width: 80vw;
   }
-  .idle-history .seat-chip {
+  .idle-history .ticket-chip {
     background: rgba(255,215,0,0.12);
     border: 1px solid rgba(255,215,0,0.3);
     color: #ffd700;
@@ -263,20 +253,31 @@
   .draw-title {
     font-size: 32px; color: #ff8a94;
     letter-spacing: 12px; font-weight: 700;
-    margin-bottom: 60px;
+    margin-bottom: 50px;
     animation: pulse 1s infinite;
   }
-  .digit-wrap {
-    display: flex; align-items: baseline; gap: 30px;
+  .ticket-display {
+    display: flex; align-items: center; gap: 30px;
     perspective: 1000px;
+  }
+  .ticket-prefix {
+    font-size: 80px;
+    color: #ffd700;
+    font-weight: 800;
+    letter-spacing: 4px;
+    text-shadow: 0 0 30px rgba(255,215,0,0.5);
+    font-family: 'SF Mono', Menlo, monospace;
+    align-self: center;
   }
   .digit-box-big {
     background: linear-gradient(180deg, #1a1030, #0f0820);
     border: 4px solid rgba(255,70,85,0.5);
     border-radius: 24px;
-    width: 280px; height: 360px;
+    padding: 30px 50px;
+    min-width: 480px;
+    height: 240px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 240px;
+    font-size: 200px;
     font-weight: 900;
     color: #ffd700;
     font-variant-numeric: tabular-nums;
@@ -286,7 +287,7 @@
     overflow: hidden;
     position: relative;
     font-family: 'Bebas Neue', 'Impact', 'Oswald', sans-serif;
-    letter-spacing: -10px;
+    letter-spacing: 4px;
   }
   .digit-box-big.spin {
     animation: digitShake 0.08s linear infinite;
@@ -310,17 +311,8 @@
     100% { transform: translate(0,0) rotateZ(0); }
   }
   @keyframes lockPulse {
-    0% { transform: scale(1.4); }
+    0% { transform: scale(1.2); }
     100% { transform: scale(1); }
-  }
-  .digit-label {
-    font-size: 80px;
-    color: #fff;
-    letter-spacing: 10px;
-    font-weight: 700;
-    font-family: 'PingFang SC', sans-serif;
-    align-self: center;
-    text-shadow: 0 0 20px rgba(255,70,85,0.5);
   }
 
   .draw-status {
@@ -351,31 +343,31 @@
     margin-bottom: 14px;
   }
   .winner-title {
-    font-size: 72px; font-weight: 900;
+    font-size: 64px; font-weight: 900;
     background: linear-gradient(135deg, #ffd700 0%, #ff4655 50%, #ffd700 100%);
     background-size: 200% 100%;
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     letter-spacing: 16px;
     animation: shine 2s linear infinite;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
   }
-  .winner-seat {
+  .winner-ticket {
     display: inline-block;
     background: linear-gradient(135deg, var(--red), #c73a46);
     color: #fff;
     padding: 22px 70px;
     border-radius: 16px;
-    font-size: 90px; font-weight: 900;
-    letter-spacing: 8px;
+    font-size: 96px; font-weight: 900;
+    letter-spacing: 6px;
     font-family: 'SF Mono', Menlo, monospace;
     box-shadow:
       0 0 60px rgba(255,70,85,0.6),
       inset 0 4px 20px rgba(255,255,255,0.1);
-    margin-bottom: 30px;
+    margin-bottom: 24px;
     border: 3px solid rgba(255,255,255,0.2);
-    animation: seatPulse 1.5s ease-in-out infinite;
+    animation: ticketPulse 1.5s ease-in-out infinite;
   }
-  @keyframes seatPulse {
+  @keyframes ticketPulse {
     0%,100% { transform: scale(1); box-shadow: 0 0 60px rgba(255,70,85,0.6), inset 0 4px 20px rgba(255,255,255,0.1); }
     50% { transform: scale(1.03); box-shadow: 0 0 100px rgba(255,70,85,0.9), inset 0 4px 20px rgba(255,255,255,0.15); }
   }
@@ -386,11 +378,11 @@
     margin-bottom: 8px;
   }
   .winner-prize {
-    font-size: 48px; font-weight: 900;
+    font-size: 44px; font-weight: 900;
     background: linear-gradient(135deg, #00d4ff 0%, #c084fc 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     letter-spacing: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
   .winner-prize-sub {
     font-size: 14px; color: #7a8fa6; letter-spacing: 3px;
@@ -398,9 +390,9 @@
 
   /* Prize image */
   .prize-img-stage {
-    margin: 30px auto 0;
-    max-width: 720px;
-    width: 60vw;
+    margin: 24px auto 0;
+    max-width: 600px;
+    width: 50vw;
     aspect-ratio: 4/3;
     background:
       radial-gradient(ellipse at 50% 60%, rgba(0,212,255,0.3), transparent 70%),
@@ -435,7 +427,7 @@
     50% { transform: translateY(-15px) rotate(2deg) scale(1.02); }
   }
 
-  /* Beam light effect */
+  /* Beam light */
   .light-beam {
     position: fixed; inset: 0;
     z-index: 4;
@@ -456,7 +448,6 @@
     100% { transform: rotate(360deg); }
   }
 
-  /* Confetti / fireworks canvas */
   .confetti-canvas {
     position: fixed; inset: 0;
     z-index: 8;
@@ -521,7 +512,6 @@
     font-size: 14px;
   }
 
-  /* Auto hide cursor in fullscreen */
   body.fullscreen-no-cursor { cursor: none; }
 </style>
 </head>
@@ -555,24 +545,22 @@
 
 <!-- Stage A: Idle -->
 <div class="stage-idle" id="stageIdle">
-  <div class="idle-emoji">🎁</div>
-  <div class="idle-title">校 园 行 抽 奖</div>
-  <div class="idle-sub">凭票根「X 排 X 座」现 场 抽 取</div>
+  <div class="idle-emoji">🎫</div>
+  <div class="idle-title">票 根 抽 奖</div>
+  <div class="idle-sub">凭 票 根 序 号 现 场 抽 取</div>
   <div class="idle-prize-hint">本场奖品：<span class="prize-name" id="idlePrizeName">一等奖</span></div>
   <button class="big-start-btn" id="btnStart">开 始 抽 奖</button>
   <div class="start-hint">点击按钮 · 或按 <kbd>空格</kbd> / <kbd>Enter</kbd> 启动</div>
-  <div class="no-pool-hint" id="noPoolHint">⚠️ 暂无可抽座位，请先在控制端配置</div>
+  <div class="no-pool-hint" id="noPoolHint">⚠️ 暂无可抽票号，请先在控制端配置</div>
   <div class="idle-history" id="idleHistory"></div>
 </div>
 
 <!-- Stage B: Drawing -->
 <div class="stage-draw" id="stageDraw">
   <div class="draw-title">🔥 抽 奖 中 🔥</div>
-  <div class="digit-wrap">
-    <div class="digit-box-big" id="digitRow">--</div>
-    <div class="digit-label">排</div>
-    <div class="digit-box-big" id="digitCol">--</div>
-    <div class="digit-label">座</div>
+  <div class="ticket-display">
+    <div class="ticket-prefix" id="ticketPrefix">No.</div>
+    <div class="digit-box-big" id="digitMain">---</div>
   </div>
   <div class="draw-status" id="drawStatus">幸 运 之 神 即 将 降 临...</div>
 </div>
@@ -581,7 +569,7 @@
 <div class="stage-winner" id="stageWinner">
   <div class="winner-crown">★ ★ ★  CONGRATULATIONS  ★ ★ ★</div>
   <div class="winner-title">恭 喜 中 奖</div>
-  <div class="winner-seat" id="winnerSeat">-- 排 -- 座</div>
+  <div class="winner-ticket" id="winnerTicket">No. ---</div>
   <div class="winner-prize-label">PRIZE · 奖 品</div>
   <div class="winner-prize" id="winnerPrize">一等奖</div>
   <div class="winner-prize-sub" id="winnerPrizeSub">活动现场限定</div>
@@ -590,7 +578,7 @@
 
 <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
 
-<!-- Default Phantom 2.0 SVG -->
+<!-- Default Trophy SVG -->
 <svg id="defaultPhantomSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" style="display:none;" preserveAspectRatio="xMidYMid meet">
   <defs>
     <linearGradient id="trophyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -607,7 +595,6 @@
       <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <!-- Glow rays behind -->
   <circle cx="200" cy="200" r="180" fill="url(#rayGrad)"/>
   <g stroke="#ffd700" stroke-width="2" opacity="0.5">
     <line x1="200" y1="20" x2="200" y2="60"/>
@@ -619,23 +606,15 @@
     <line x1="70" y1="330" x2="100" y2="300"/>
     <line x1="300" y1="300" x2="330" y2="330"/>
   </g>
-  <!-- Trophy handles -->
   <path d="M 110 150 Q 70 150 70 200 Q 70 250 130 250" fill="none" stroke="url(#trophyGrad)" stroke-width="14" stroke-linecap="round"/>
   <path d="M 290 150 Q 330 150 330 200 Q 330 250 270 250" fill="none" stroke="url(#trophyGrad)" stroke-width="14" stroke-linecap="round"/>
-  <!-- Trophy cup body -->
   <path d="M 110 110 L 290 110 L 280 240 Q 200 270 120 240 Z" fill="url(#trophyGrad)" stroke="#8a6a00" stroke-width="2"/>
-  <!-- Top rim -->
   <ellipse cx="200" cy="110" rx="92" ry="14" fill="#fff8a0" stroke="#8a6a00" stroke-width="2"/>
   <ellipse cx="200" cy="110" rx="80" ry="9" fill="#b8860b" opacity="0.4"/>
-  <!-- Star on cup -->
   <polygon points="200,150 211,180 243,180 217,200 226,232 200,213 174,232 183,200 157,180 189,180" fill="#fff8a0" stroke="#8a6a00" stroke-width="1.5"/>
-  <!-- Stem -->
   <rect x="180" y="265" width="40" height="30" fill="url(#trophyGrad)" stroke="#8a6a00" stroke-width="1.5"/>
-  <!-- Base top -->
   <rect x="150" y="295" width="100" height="20" rx="3" fill="url(#baseGrad)" stroke="#5a4500" stroke-width="2"/>
-  <!-- Base bottom -->
   <rect x="130" y="315" width="140" height="30" rx="3" fill="url(#baseGrad)" stroke="#5a4500" stroke-width="2"/>
-  <!-- Highlights -->
   <path d="M 130 130 L 145 130 L 138 220 Q 135 222 132 220 Z" fill="#ffffff" opacity="0.4"/>
   <ellipse cx="200" cy="108" rx="60" ry="3" fill="#ffffff" opacity="0.6"/>
 </svg>
@@ -646,7 +625,7 @@
     <h2>🖥️ 大屏端使用说明</h2>
     <div class="step-item"><div class="num">1</div>
       <div><strong>本页是大屏展示页 + 抽奖启动页</strong>，在另一标签页打开<strong>控制端</strong>做配置<br>
-      <span style="color:#7a8fa6;font-size:13px;">控制端地址：./admin.html（用于配置座位数、排除座位、上传奖品图、查看历史）</span></div>
+      <span style="color:#7a8fa6;font-size:13px;">控制端地址：./admin.html（用于配置票号范围、调整可抽区段、上传奖品图、查看历史）</span></div>
     </div>
     <div class="step-item"><div class="num">2</div>
       <div>把本页拖到投影屏所在的窗口，按 <kbd>F</kbd> 或 <kbd>F11</kbd> 全屏</div>
@@ -674,7 +653,6 @@
   const CMD_KEY   = 'seat-lottery-cmd-v1';
   const SCREEN_HB = 'seat-lottery-screen-hb-v1';
 
-  // ---------- state load ----------
   function loadState(){
     try {
       const raw = localStorage.getItem(STATE_KEY);
@@ -685,8 +663,12 @@
   function saveState(s){
     try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch(e){}
   }
+  function fmt(n, s){
+    s = s || loadState() || {};
+    return (s.prefix || '') + String(n).padStart(s.pad || 1, '0');
+  }
 
-  // ---------- heartbeat ----------
+  // heartbeat
   function beat(){
     try { localStorage.setItem(SCREEN_HB, JSON.stringify({ ts: Date.now() })); } catch(e){}
   }
@@ -729,21 +711,16 @@
   }
   animateStars();
 
-  // ---------- update idle UI ----------
+  // ---------- pool helpers ----------
   function pickWinnerFromState(s){
     if (!s) return null;
-    const wonSet = new Set((s.won||[]).map(w => w.row+'-'+w.col));
+    const wonSet = new Set((s.won||[]).map(w => w.num));
     const excSet = new Set(s.excluded||[]);
     const pool = [];
-    const rs = s.rowStart||1, cs = s.colStart||1;
-    const rows = s.rows||0, cols = s.cols||0;
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        const r = rs + i, c = cs + j;
-        const k = r+'-'+c;
-        if (excSet.has(k) || wonSet.has(k)) continue;
-        pool.push({ r, c });
-      }
+    const start = s.start || 1, end = s.end || 0;
+    for (let n = start; n <= end; n++) {
+      if (excSet.has(n) || wonSet.has(n)) continue;
+      pool.push(n);
     }
     if (!pool.length) return null;
     return pool[Math.floor(Math.random() * pool.length)];
@@ -756,25 +733,23 @@
       document.getElementById('idleHistory').innerHTML = '';
       document.getElementById('bbAvailable').textContent = '0';
       document.getElementById('bbWon').textContent = '0';
+      document.getElementById('ticketPrefix').textContent = 'No.';
       setStartBtnAvailable(0);
       return;
     }
     document.getElementById('idlePrizeName').textContent = s.prizeName || '一等奖';
+    document.getElementById('ticketPrefix').textContent = s.prefix || '';
     const hist = document.getElementById('idleHistory');
     if (s.won && s.won.length) {
-      hist.innerHTML = s.won.slice(-12).map(w => `<span class="seat-chip">${w.row} 排 ${w.col} 座</span>`).join('');
+      hist.innerHTML = s.won.slice(-12).map(w => `<span class="ticket-chip">${fmt(w.num, s)}</span>`).join('');
     } else {
       hist.innerHTML = '';
     }
-    const wonSet = new Set((s.won||[]).map(w => w.row+'-'+w.col));
+    const wonSet = new Set((s.won||[]).map(w => w.num));
     const excSet = new Set(s.excluded||[]);
     let avail = 0;
-    for (let i = 0; i < (s.rows||0); i++) {
-      for (let j = 0; j < (s.cols||0); j++) {
-        const r = (s.rowStart||1) + i, c = (s.colStart||1) + j;
-        const k = r+'-'+c;
-        if (!excSet.has(k) && !wonSet.has(k)) avail++;
-      }
+    for (let n = (s.start||1); n <= (s.end||0); n++) {
+      if (!excSet.has(n) && !wonSet.has(n)) avail++;
     }
     document.getElementById('bbAvailable').textContent = avail;
     document.getElementById('bbWon').textContent = wonSet.size;
@@ -791,7 +766,7 @@
       hint.classList.remove('show');
     } else {
       btn.disabled = true;
-      btn.textContent = '暂 无 可 抽 座 位';
+      btn.textContent = '暂 无 可 抽 票 号';
       hint.classList.add('show');
     }
   }
@@ -800,12 +775,11 @@
     if (drawing) return;
     const s = loadState();
     const winner = pickWinnerFromState(s);
-    if (!winner) return;
-    // mark drawing on shared state so admin can see
+    if (winner == null) return;
     const cur = loadState() || {};
     cur.drawing = true;
     saveState(cur);
-    performDraw(winner.r, winner.c);
+    performDraw(winner);
   }
 
   // clock
@@ -816,7 +790,7 @@
   }
   setInterval(updateClock, 1000); updateClock();
 
-  // ---------- stage switching ----------
+  // ---------- stages ----------
   const stageIdle = document.getElementById('stageIdle');
   const stageDraw = document.getElementById('stageDraw');
   const stageWinner = document.getElementById('stageWinner');
@@ -828,7 +802,7 @@
     lightBeam.classList.toggle('show', name === 'winner');
   }
 
-  // ---------- audio (web audio API beep) ----------
+  // audio
   let audioCtx = null;
   function ensureAudio(){
     if (!audioCtx) {
@@ -850,7 +824,7 @@
   }
   function fanfare(){
     const ac = ensureAudio(); if (!ac) return;
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C
+    const notes = [523.25, 659.25, 783.99, 1046.50];
     notes.forEach((f, i) => {
       setTimeout(() => {
         const osc = ac.createOscillator();
@@ -866,69 +840,68 @@
     });
   }
 
-  // ---------- DRAW animation ----------
+  // ---------- DRAW animation (single 3-digit-ish box) ----------
   let drawing = false;
-  function setDigit(el, text, spin, locked){
+  function setDigit(text, spin, locked){
+    const el = document.getElementById('digitMain');
     el.textContent = text;
     el.classList.toggle('spin', !!spin);
     el.classList.toggle('locked', !!locked);
   }
 
-  function performDraw(winnerRow, winnerCol){
+  function performDraw(winnerNum){
     if (drawing) return;
     drawing = true;
     showStage('draw');
-    const dr = document.getElementById('digitRow');
-    const dc = document.getElementById('digitCol');
     const status = document.getElementById('drawStatus');
     status.textContent = '幸 运 之 神 即 将 降 临...';
 
     const s = loadState() || {};
-    const rowMin = s.rowStart || 1, rowMax = (s.rowStart||1) + (s.rows||20) - 1;
-    const colMin = s.colStart || 1, colMax = (s.colStart||1) + (s.cols||30) - 1;
+    const start = s.start || 1, end = s.end || 200;
+    const pad = s.pad || 3;
     const rnd = (lo, hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
 
-    // unlock audio
     ensureAudio();
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 
-    setDigit(dr, '--', false, false);
-    setDigit(dc, '--', false, false);
+    setDigit('-'.repeat(pad), false, false);
 
-    // Phase 1: both spin (1.6s)
     let tickCounter = 0;
+    // Phase 1: fast spin (1.6s)
     const spin1 = setInterval(() => {
-      setDigit(dr, rnd(rowMin,rowMax), true, false);
-      setDigit(dc, rnd(colMin,colMax), true, false);
+      const r = rnd(start, end);
+      setDigit(String(r).padStart(pad, '0'), true, false);
       if (tickCounter++ % 2 === 0) tick(180 + Math.random()*120, 0.04, 0.03);
-    }, 70);
+    }, 60);
 
     setTimeout(() => {
       clearInterval(spin1);
-      // Phase 2: lock row, col still spinning
-      setDigit(dr, winnerRow, false, true);
-      tick(880, 0.15, 0.1);
-      status.textContent = '排 号 锁 定 ！座 号 抽 取 中 ...';
+      status.textContent = '即 将 揭 晓 ...';
+      // Phase 2: slow spin (1.4s)
+      let slowI = 0;
       const spin2 = setInterval(() => {
-        setDigit(dc, rnd(colMin,colMax), true, false);
-        if (tickCounter++ % 2 === 0) tick(220 + Math.random()*150, 0.04, 0.04);
-      }, 70);
+        const r = rnd(start, end);
+        setDigit(String(r).padStart(pad, '0'), true, false);
+        tick(220 + Math.random()*150, 0.05, 0.04);
+        slowI++;
+      }, 90 + 0); // a bit slower
+
       setTimeout(() => {
         clearInterval(spin2);
-        // Phase 3: lock col → reveal winner
-        setDigit(dc, winnerCol, false, true);
+        // Lock to winner
+        setDigit(String(winnerNum).padStart(pad, '0'), false, true);
         tick(1320, 0.3, 0.15);
         status.textContent = '🎊  中 奖 啦  🎊';
         setTimeout(() => {
-          showWinner(winnerRow, winnerCol);
+          showWinner(winnerNum);
         }, 800);
       }, 1500);
     }, 1700);
   }
 
-  function showWinner(r, c){
+  function showWinner(num){
     const s = loadState() || {};
-    document.getElementById('winnerSeat').textContent = `${r} 排 ${c} 座`;
+    document.getElementById('winnerTicket').textContent = fmt(num, s);
     document.getElementById('winnerPrize').textContent = s.prizeName || '一等奖';
     document.getElementById('winnerPrizeSub').textContent = s.prizeSub || '活动现场限定';
     const wrap = document.getElementById('winnerImageWrap');
@@ -950,16 +923,14 @@
     fireConfetti();
     fireFireworks();
 
-    // Update state: append winner, mark drawing false
     const cur = loadState() || {};
     cur.won = cur.won || [];
-    cur.won.push({ row: r, col: c, time: Date.now() });
+    cur.won.push({ num, time: Date.now() });
     cur.drawing = false;
-    cur.lastWinner = { row: r, col: c, time: Date.now() };
+    cur.lastWinner = { num, time: Date.now() };
     saveState(cur);
     drawing = false;
 
-    // After 8s of celebration, return to idle (still showing in idle history)
     clearTimeout(window.__autoIdleTimer);
     window.__autoIdleTimer = setTimeout(() => {
       showStage('idle');
@@ -974,8 +945,6 @@
   }
 
   // ---------- listen commands ----------
-  // initialize baseline to current cmd ts so any pre-existing command
-  // (left over from old admin-triggered version) is NOT executed on load.
   let lastCmdTs = 0;
   try {
     const _raw = localStorage.getItem(CMD_KEY);
@@ -993,8 +962,6 @@
     } catch(e){}
   }
   function handleCmd(cmd){
-    // 'draw' command is intentionally ignored: the screen page now starts the draw locally
-    // via the on-screen button or Space/Enter. We only honor 'reset' here.
     if (cmd.type === 'reset') {
       reset();
     }
@@ -1003,11 +970,10 @@
     if (e.key === CMD_KEY) checkCmd();
     if (e.key === STATE_KEY) updateIdle();
   });
-  // also poll in case storage events miss (same-tab edits do not fire storage event)
   setInterval(checkCmd, 500);
   setInterval(updateIdle, 2000);
 
-  // ---------- confetti ----------
+  // confetti
   const confettiCanvas = document.getElementById('confettiCanvas');
   const cctx = confettiCanvas.getContext('2d');
   function resizeConfetti(){ confettiCanvas.width = window.innerWidth; confettiCanvas.height = window.innerHeight; }
@@ -1016,7 +982,6 @@
   function fireConfetti(){
     const colors = ['#ff4655','#ffd700','#00d4ff','#4ade80','#c084fc','#ff8a94','#ffffff'];
     const W = confettiCanvas.width, H = confettiCanvas.height;
-    // burst from multiple positions
     for (let burst = 0; burst < 4; burst++) {
       const cx = W * (0.2 + 0.2*burst);
       setTimeout(() => {
@@ -1062,7 +1027,6 @@
     if (particles.length) requestAnimationFrame(animateConfetti);
     else { cctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height); confettiRunning = false; }
   }
-  // fireworks: rising rockets that explode
   function fireFireworks(){
     const W = confettiCanvas.width, H = confettiCanvas.height;
     for (let r = 0; r < 5; r++) {
@@ -1071,14 +1035,12 @@
         const targetY = H * (0.2 + Math.random()*0.2);
         const colors = ['#ff4655','#ffd700','#00d4ff','#c084fc'];
         const color = colors[Math.floor(Math.random()*colors.length)];
-        // launch trail
         let trailY = H;
         const launchInterval = setInterval(() => {
           trailY -= 18;
           particles.push({ type:'circle', x: startX + (Math.random()-0.5)*4, y: trailY, vx: 0, vy: 0, g: 0, size: 3, rot: 0, vr: 0, color: '#ffd700', life: 8 });
           if (trailY <= targetY) {
             clearInterval(launchInterval);
-            // explode
             for (let i = 0; i < 60; i++) {
               const ang = Math.random()*Math.PI*2;
               const sp = 3 + Math.random()*8;
@@ -1100,16 +1062,13 @@
     if (!confettiRunning) animateConfetti();
   }
 
-  // ---------- keyboard shortcuts ----------
+  // keyboard
   document.addEventListener('keydown', (e) => {
-    // ignore if focused inside an input (none here, but defensive)
     if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
       e.preventDefault();
-      // only trigger draw when on idle stage and not drawing
       if (!drawing && !stageDraw.classList.contains('show') && !stageWinner.classList.contains('show')) {
         triggerLocalDraw();
       } else if (stageWinner.classList.contains('show')) {
-        // skip celebration and back to idle for next draw
         clearTimeout(window.__autoIdleTimer);
         showStage('idle');
         updateIdle();
@@ -1124,26 +1083,24 @@
     } else if (e.key === 'Escape') {
       document.getElementById('helpOverlay').classList.remove('show');
     } else if (e.key === 't' || e.key === 'T') {
-      // test
-      performDraw('?', '?');
+      // test draw with a fake number
+      const s = loadState() || {};
+      performDraw(s.start || 1);
     }
   });
   document.getElementById('helpClose').addEventListener('click', () => {
     document.getElementById('helpOverlay').classList.remove('show');
   });
-  // start button
   document.getElementById('btnStart').addEventListener('click', () => {
     triggerLocalDraw();
   });
 
-  // ---------- init ----------
-  // show help on first open if no state
+  // init
   if (!loadState()) {
     setTimeout(() => document.getElementById('helpOverlay').classList.add('show'), 500);
   }
   showStage('idle');
   updateIdle();
-  // on first user click, unlock audio
   document.addEventListener('click', () => { ensureAudio(); if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }, { once: true });
 
 })();
