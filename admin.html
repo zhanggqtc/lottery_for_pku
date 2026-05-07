@@ -402,7 +402,9 @@
     background: rgba(255,215,0,0.08);
     border: 1px solid rgba(255,215,0,0.15);
     font-size: 12px;
+    transition: all 0.2s;
   }
+  .history-item:hover { background: rgba(255,215,0,0.12); }
   .history-item .idx {
     width: 22px; height: 22px;
     background: var(--gold); color: #1a1608;
@@ -419,6 +421,22 @@
     font-family: 'SF Mono', Menlo, monospace;
   }
   .history-item .time { color: var(--muted); font-size: 11px; margin-left: auto; }
+  .history-item .del-btn {
+    background: transparent;
+    border: none;
+    color: #5a6b80;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .history-item .del-btn:hover {
+    background: rgba(255,70,85,0.2);
+    color: #ff4655;
+    transform: scale(1.1);
+  }
 
   /* Image upload */
   .img-uploader {
@@ -798,10 +816,11 @@
       const totalIdx = state.won.length - idx;
       const t = new Date(w.time);
       const ts = String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
-      return `<div class="history-item">
+      return `<div class="history-item" data-num="${w.num}">
         <span class="idx">${totalIdx}</span>
         <span class="ticket-tag">${fmt(w.num)}</span>
         <span class="time">${ts}</span>
+        <button class="del-btn" data-del="${w.num}" title="删除该条记录（票号变回可抽）">🗑️</button>
       </div>`;
     }).join('');
   }
@@ -970,6 +989,24 @@
   });
 
   // ---------- history ----------
+  // 单条删除：通过事件委托
+  document.getElementById('historyList').addEventListener('click', (e) => {
+    const btn = e.target.closest('.del-btn');
+    if (!btn) return;
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    const num = +btn.dataset.del;
+    const idx = state.won.findIndex(w => w.num === num);
+    if (idx === -1) return;
+    state.won.splice(idx, 1);
+    // 同步 lastWinner
+    if (state.lastWinner && state.lastWinner.num === num) {
+      state.lastWinner = state.won.length ? state.won[state.won.length - 1] : null;
+    }
+    saveState();
+    render();
+    toast(`已删除 ${fmt(num)}，该票号变回可抽`);
+  });
+
   document.getElementById('btnClearHistory').addEventListener('click', () => {
     if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
     if (!state.won.length) { toast('无记录可清空'); return; }
