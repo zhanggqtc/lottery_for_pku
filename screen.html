@@ -766,7 +766,7 @@
 
 <!-- Stage B: Drawing -->
 <div class="stage-draw" id="stageDraw">
-  <div class="draw-title">🔥 抽 奖 中 🔥</div>
+  <div class="draw-title">🔥 抽 奖 中 <span id="drawProgress" style="display:none;font-size:24px;color:#ffd700;letter-spacing:4px;margin-left:14px;"></span> 🔥</div>
   <div class="ticket-display">
     <div class="ticket-prefix" id="ticketPrefix">No.</div>
     <div class="digit-box-big" id="digitMain">---</div>
@@ -887,6 +887,18 @@
     s = s || loadState() || {};
     return (s.prefix || '') + String(n).padStart(s.pad || 1, '0');
   }
+  function getCurrentPrize(s){
+    s = s || loadState() || {};
+    if (Array.isArray(s.prizes) && s.currentPrizeId) {
+      const p = s.prizes.find(x => x.id === s.currentPrizeId);
+      if (p) return p;
+    }
+    // 兼容老 state
+    if (s.prizeName || s.prizeImage) {
+      return { name: s.prizeName, sub: s.prizeSub, image: s.prizeImage, emoji: '🎁' };
+    }
+    return { name: '一等奖', sub: '活动现场限定', image: null, emoji: '🏆' };
+  }
 
   // heartbeat
   function beat(){
@@ -983,7 +995,8 @@
     const evName = s.eventName || '票根抽奖';
     titleEl.textContent = spaced(evName);
     applyTitleSize(titleEl, evName);
-    document.getElementById('idlePrizeName').textContent = s.prizeName || '一等奖';
+    const cp = getCurrentPrize(s);
+    document.getElementById('idlePrizeName').textContent = cp.name || '一等奖';
     document.getElementById('ticketPrefix').textContent = s.prefix || '';
 
     if (s.won && s.won.length) {
@@ -1031,8 +1044,7 @@
   }
 
   function triggerLocalDraw(){
-    // legacy alias, now redirects to startDraw
-    startDraw();
+    startBatch();
   }
 
   // clock
@@ -1094,16 +1106,17 @@
   }
 
   // ---------- DRAW animation (two-phase: start → stop) ----------
-  // States:
-  //   drawing = false                : idle
-  //   drawing = true,  spinning = true: rolling (waiting for user to stop)
-  //   drawing = true,  spinning = false: locked, showing winner soon
   let drawing = false;
   let spinning = false;
-  let canStop = false;       // becomes true after MIN_SPIN_MS
+  let canStop = false;
   let spinTimer = null;
   let progressTimer = null;
-  const MIN_SPIN_MS = 1000;   // 至少滚 1 秒才能停
+  const MIN_SPIN_MS = 1000;
+
+  // 连抽进度
+  let batchTotal = 1;
+  let batchIndex = 0;     // 0-based, 第 N 抽中的 N-1
+  let batchPrize = null;  // 整批使用的奖品快照
 
   function setDigit(text, spin, locked){
     const el = document.getElementById('digitMain');
@@ -1112,18 +1125,52 @@
     el.classList.toggle('locked', !!locked);
   }
 
+  function updateProgressLabel(){
+    const el = document.getElementById('drawProgress');
+    if (batchTotal > 1) {
+      el.textContent = `第 ${batchIndex + 1} / ${batchTotal} 抽`;
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  function startBatch(){
+    if (drawing) return;
+    const s = loadState() || {};
+    batchTotal = [1,2,5].includes(s.drawCount) ? s.drawCount : 1;
+    batchIndex = 0;
+    // 锁定本批次使用的奖品（取一次，全程用同一个）
+    const cp = getCurrentPrize(s);
+    batchPrize = {
+      prizeName: cp.name,
+      prizeSub: cp.sub,
+      prizeImage: cp.image,
+      prizeEmoji: cp.emoji,
+    };
+    startDraw();
+  }
+
   function startDraw(){
     if (drawing) return;
     const s = loadState();
     const winner = pickWinnerFromState(s);
-    if (winner == null) return;
+    if (winner == null) {
+      // 没号可抽（可能批量过程中池子用光了）
+      if (batchIndex > 0) {
+        // 已经抽到部分号码，回 idle 让用户感知
+        showStage('idle');
+        updateIdle();
+      }
+      return;
+    }
 
     drawing = true;
     spinning = true;
     canStop = false;
     showStage('draw');
+    updateProgressLabel();
 
-    // Mark drawing in shared state (admin can see)
     const cur = loadState() || {};
     cur.drawing = true;
     saveState(cur);
@@ -1137,7 +1184,6 @@
 
     setDigit('-'.repeat(pad), false, false);
 
-    // Start infinite spin
     let tickCounter = 0;
     spinTimer = setInterval(() => {
       const r = rnd(start, end);
@@ -1145,7 +1191,6 @@
       if (tickCounter++ % 2 === 0) tick(180 + Math.random()*120, 0.04, 0.03);
     }, 60);
 
-    // Stop hint progress: fills over MIN_SPIN_MS, then turns green & arms stop
     const hintText = document.getElementById('stopHintText');
     const progress = document.getElementById('stopProgress');
     const stopBtn = document.getElementById('btnStop');
@@ -1164,14 +1209,12 @@
         progress.classList.add('ready');
         hintText.classList.add('armed');
         stopBtn.disabled = false;
-        // 微音效提示已可停
         tick(880, 0.12, 0.06);
         clearInterval(progressTimer);
         progressTimer = null;
       }
     }, 50);
 
-    // Cache winner so stopDraw uses the same one
     window.__pendingWinner = winner;
   }
 
@@ -1184,8 +1227,6 @@
     const winner = window.__pendingWinner;
     const s = loadState() || {};
     const pad = s.pad || 3;
-
-    // Brief deceleration animation: 5 random ticks slowing down then lock
     const start = s.start || 1, end = s.end || 200;
     const rnd = (lo, hi) => Math.floor(Math.random()*(hi-lo+1))+lo;
     let i = 0;
@@ -1209,14 +1250,20 @@
 
   function showWinner(num){
     const s = loadState() || {};
+    // 用本批次锁定的奖品（如果存在），否则即时取
+    const prize = batchPrize || {
+      prizeName: getCurrentPrize(s).name,
+      prizeSub: getCurrentPrize(s).sub,
+      prizeImage: getCurrentPrize(s).image,
+    };
     document.getElementById('winnerTicket').textContent = fmt(num, s);
-    document.getElementById('winnerPrize').textContent = s.prizeName || '一等奖';
-    document.getElementById('winnerPrizeSub').textContent = s.prizeSub || '活动现场限定';
+    document.getElementById('winnerPrize').textContent = prize.prizeName || '一等奖';
+    document.getElementById('winnerPrizeSub').textContent = prize.prizeSub || '活动现场限定';
     const wrap = document.getElementById('winnerImageWrap');
     wrap.innerHTML = '';
-    if (s.prizeImage) {
+    if (prize.prizeImage) {
       const img = document.createElement('img');
-      img.src = s.prizeImage;
+      img.src = prize.prizeImage;
       wrap.appendChild(img);
     } else {
       const svg = document.getElementById('defaultPhantomSvg').cloneNode(true);
@@ -1231,9 +1278,15 @@
     fireConfetti();
     fireFireworks();
 
+    // 记录中奖（带奖品快照）
     const cur = loadState() || {};
     cur.won = cur.won || [];
-    cur.won.push({ num, time: Date.now() });
+    cur.won.push({
+      num, time: Date.now(),
+      prizeName: prize.prizeName,
+      prizeSub: prize.prizeSub,
+      prizeImage: prize.prizeImage,
+    });
     cur.drawing = false;
     cur.lastWinner = { num, time: Date.now() };
     saveState(cur);
@@ -1241,15 +1294,31 @@
     window.__pendingWinner = null;
 
     clearTimeout(window.__autoIdleTimer);
-    window.__autoIdleTimer = setTimeout(() => {
-      showStage('idle');
-      resetDrawUi();
-      updateIdle();
-    }, 9000);
+
+    // 是否还有下一抽？
+    if (batchIndex + 1 < batchTotal) {
+      // 5 秒后自动下一抽（中间可以按空格立刻进下一抽）
+      window.__autoIdleTimer = setTimeout(() => {
+        nextInBatch();
+      }, 5000);
+    } else {
+      // 全部抽完，9 秒后回 idle
+      window.__autoIdleTimer = setTimeout(() => {
+        showStage('idle');
+        resetDrawUi();
+        updateIdle();
+        batchTotal = 1; batchIndex = 0; batchPrize = null;
+      }, 9000);
+    }
+  }
+
+  function nextInBatch(){
+    batchIndex += 1;
+    resetDrawUi();
+    startDraw();
   }
 
   function resetDrawUi(){
-    // 恢复 draw stage UI（下次抽奖用）
     document.querySelector('.stop-hint-progress').style.display = 'block';
     document.getElementById('btnStop').style.display = '';
     document.getElementById('btnStop').disabled = true;
@@ -1267,6 +1336,7 @@
     spinning = false;
     canStop = false;
     window.__pendingWinner = null;
+    batchTotal = 1; batchIndex = 0; batchPrize = null;
     resetDrawUi();
     showStage('idle');
     updateIdle();
@@ -1395,18 +1465,22 @@
     if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
       e.preventDefault();
       if (stageWinner.classList.contains('show')) {
-        // 中奖展示中：跳过庆祝，回 idle
+        // 中奖展示中：
         clearTimeout(window.__autoIdleTimer);
-        resetDrawUi();
-        showStage('idle');
-        updateIdle();
+        if (batchIndex + 1 < batchTotal) {
+          // 还有下一抽 → 立即开始
+          nextInBatch();
+        } else {
+          // 全部抽完 → 跳过庆祝回 idle
+          resetDrawUi();
+          showStage('idle');
+          updateIdle();
+          batchTotal = 1; batchIndex = 0; batchPrize = null;
+        }
       } else if (drawing && spinning) {
-        // 滚动中：尝试停止（满 1 秒才会真的停）
         if (canStop) stopDraw();
-        // 没满 1 秒就忽略，进度条继续走
       } else if (!drawing) {
-        // 空闲：启动抽奖
-        startDraw();
+        startBatch();
       }
     } else if (e.key === 'f' || e.key === 'F') {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
@@ -1418,9 +1492,8 @@
     } else if (e.key === 'Escape') {
       document.getElementById('helpOverlay').classList.remove('show');
     } else if (e.key === 't' || e.key === 'T') {
-      // test 也走两阶段，自动 1.5s 后停
       if (!drawing) {
-        startDraw();
+        startBatch();
         setTimeout(() => { if (canStop) stopDraw(); }, 1500);
       }
     }
@@ -1429,7 +1502,7 @@
     document.getElementById('helpOverlay').classList.remove('show');
   });
   document.getElementById('btnStart').addEventListener('click', () => {
-    startDraw();
+    startBatch();
   });
   document.getElementById('btnStop').addEventListener('click', () => {
     if (canStop) stopDraw();

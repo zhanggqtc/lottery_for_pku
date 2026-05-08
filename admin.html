@@ -456,6 +456,117 @@
     border: 1px solid rgba(255,255,255,0.08);
   }
 
+  /* Prize list */
+  .prize-list {
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 280px; overflow-y: auto;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+  .prize-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .prize-item:hover { border-color: rgba(255,215,0,0.3); }
+  .prize-item.active {
+    background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,70,85,0.10));
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(255,215,0,0.2);
+  }
+  .prize-item .thumb {
+    flex-shrink: 0;
+    width: 44px; height: 44px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    overflow: hidden;
+  }
+  .prize-item .thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .prize-item .info {
+    flex: 1; min-width: 0;
+  }
+  .prize-item .name {
+    font-size: 13px; font-weight: 700; color: #fff;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .prize-item .sub {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .prize-item .actions {
+    display: flex; gap: 4px;
+    flex-shrink: 0;
+  }
+  .prize-item .icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .prize-item .icon-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+  }
+  .prize-item .icon-btn.danger:hover {
+    background: rgba(255,70,85,0.2);
+    color: #ff4655;
+  }
+  .prize-item .badge-active {
+    background: var(--gold); color: #1a1608;
+    font-size: 10px; font-weight: 800;
+    padding: 2px 6px; border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .prize-item.active .badge-active { display: inline-block; }
+  .prize-item .badge-active { display: none; }
+
+  /* Draw count selector */
+  .count-selector {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    margin-bottom: 4px;
+  }
+  .count-selector .count-btn {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .count-selector .count-btn:hover {
+    border-color: rgba(255,215,0,0.4);
+  }
+  .count-selector .count-btn.active {
+    background: linear-gradient(135deg, var(--red), var(--gold));
+    border-color: var(--gold);
+    color: #1a1608;
+    box-shadow: 0 4px 16px rgba(255,70,85,0.3);
+  }
+  .count-selector .count-btn .label {
+    display: block;
+    font-size: 11px; font-weight: 600;
+    margin-top: 2px;
+    opacity: 0.7;
+  }
+
   /* Toast */
   .toast {
     position: fixed; top: 80px; left: 50%;
@@ -557,25 +668,29 @@
 
     <!-- ③ 奖品设置 -->
     <div class="panel">
-      <h2><span class="num">3</span> 奖品设置</h2>
-      <div class="field">
-        <label>奖品名称</label>
-        <input type="text" id="cfgPrizeName" value="一等奖">
+      <h2><span class="num">3</span> 奖品设置 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;">点击选中要抽的奖品</span></h2>
+      <div class="prize-list" id="prizeList"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="btnAddCustomPrize" style="flex:1;">＋ 自定义新增</button>
       </div>
-      <div class="field" style="margin-top:10px;">
-        <label>奖品副标题</label>
-        <input type="text" id="cfgPrizeSub" value="活动现场限定">
-      </div>
-      <label class="img-uploader" for="prizeImageInput">
-        🖼️ 点击上传奖品图片（默认已内置奖牌 SVG）
-        <input type="file" id="prizeImageInput" accept="image/*">
-      </label>
-      <img class="img-preview" id="prizeImagePreview" style="display:none;">
+      <!-- 隐藏的 file input 复用：通过 data-prize-id 区分 -->
+      <input type="file" id="prizeImageInput" accept="image/*" style="display:none;">
     </div>
 
-    <!-- ④ 抽奖记录 -->
+    <!-- ④ 抽奖次数 -->
     <div class="panel">
-      <h2><span class="num">4</span> 抽奖记录 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;" id="historyCount">0 位</span></h2>
+      <h2><span class="num">4</span> 抽奖次数 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;">单次按空格连抽 N 次</span></h2>
+      <div class="count-selector">
+        <button class="count-btn" data-count="1">1<span class="label">单抽</span></button>
+        <button class="count-btn" data-count="2">2<span class="label">连抽 2</span></button>
+        <button class="count-btn" data-count="5">5<span class="label">连抽 5</span></button>
+      </div>
+      <div class="hint" style="margin-top:8px;">连抽时每个号码都会有完整的滚动动画 + 庆祝展示，全部使用<strong style="color:#ffd700;">同一个奖品</strong></div>
+    </div>
+
+    <!-- ⑤ 抽奖记录 -->
+    <div class="panel">
+      <h2><span class="num">5</span> 抽奖记录 <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;" id="historyCount">0 位</span></h2>
       <div class="history-list" id="historyList">
         <div class="history-empty">暂无中奖记录</div>
       </div>
@@ -592,7 +707,7 @@
     <div class="last-result">
       <div class="label">★ 最新中奖票号 ★</div>
       <div class="ticket empty" id="lastTicketBig">尚未开始抽奖</div>
-      <div style="font-size:12px;color:var(--muted);">中奖结果会自动同步显示在此处</div>
+      <div style="font-size:12px;color:var(--muted);" id="lastResultSub">中奖结果会自动同步显示在此处</div>
     </div>
 
     <!-- Trigger hint -->
@@ -678,18 +793,31 @@
   const CMD_KEY   = 'seat-lottery-cmd-v1';
   const SCREEN_HB = 'seat-lottery-screen-hb-v1';
 
+  // 6 款预设奖品（builtin），用户可上传图片但不可删除
+  const PRESET_PRIZES = [
+    { id: 'p_sushui',   name: '塑水宗 2.0 套装',                    sub: 'VALORANT 武器皮肤套装',  emoji: '🔫', builtin: true, image: './sushuizong.png' },
+    { id: 'p_qile',     name: '无畏契约 奇乐 1/6 手办',              sub: '官方珍藏手办',            emoji: '🎎', builtin: true, image: null },
+    { id: 'p_bear',     name: '无畏契约 战术熊抱枕',                 sub: '柔软陪伴',                emoji: '🧸', builtin: true, image: null },
+    { id: 'p_bag',      name: '无畏契约 瓦友社 LOGO 经典配色双肩包',  sub: '校园通勤百搭',            emoji: '🎒', builtin: true, image: null },
+    { id: 'p_cap',      name: '无畏契约 瓦友社魔术贴鸭舌帽',         sub: '可调魔术贴',              emoji: '🧢', builtin: true, image: null },
+    { id: 'p_toy',      name: '无畏契约 瓦友社趣味发声玩具',         sub: '款式随机',                emoji: '🔊', builtin: true, image: null },
+  ];
+
   const state = {
     start: 1, end: 200,
     prefix: 'No.', pad: 3,
-    excluded: [],          // array of ticket numbers (integers)
-    won: [],               // [{num, time}]
+    excluded: [],          // array of ticket numbers
+    won: [],               // [{num, time, prizeName, prizeSub, prizeImage}]
     eventName: '票根抽奖',
-    prizeName: '一等奖',
-    prizeSub: '活动现场限定',
-    prizeImage: null,
+    prizes: null,          // 奖品池：[{id, name, sub, emoji, image, builtin}]
+    currentPrizeId: 'p_sushui',
+    drawCount: 1,          // 抽奖次数：1/2/5
     drawing: false,
     lastWinner: null,
-    // UI-only (not persisted): current section selection
+    // 旧字段保留迁移用
+    prizeName: null,
+    prizeSub: null,
+    prizeImage: null,
   };
   // section state (UI only)
   let rangeFrom = 1, rangeTo = 50;
@@ -700,12 +828,67 @@
   function loadState(){
     try {
       const raw = localStorage.getItem(STATE_KEY);
-      if (!raw) return;
+      if (!raw) { ensurePrizes(); return; }
       const d = JSON.parse(raw);
       Object.assign(state, d);
       if (!Array.isArray(state.excluded)) state.excluded = [];
       if (!Array.isArray(state.won)) state.won = [];
-    } catch(e){}
+      ensurePrizes();
+    } catch(e){ ensurePrizes(); }
+  }
+  function ensurePrizes(){
+    // 第一次或缺失：用预设克隆
+    if (!Array.isArray(state.prizes) || state.prizes.length === 0) {
+      state.prizes = PRESET_PRIZES.map(p => ({...p}));
+    } else {
+      // 兼容旧 state：合并预设（按 id），保留用户上传的图片和自定义项
+      const byId = new Map(state.prizes.map(p => [p.id, p]));
+      const merged = [];
+      // 先放预设（保留用户已有图）
+      for (const preset of PRESET_PRIZES) {
+        const exist = byId.get(preset.id);
+        if (exist) {
+          merged.push({
+            ...preset,
+            image: exist.image !== undefined ? exist.image : preset.image,
+            // name/sub 也允许用户改写，但这里保留预设原文（避免历史的临时改动覆盖）
+            name: exist.name || preset.name,
+            sub: exist.sub != null ? exist.sub : preset.sub,
+          });
+          byId.delete(preset.id);
+        } else {
+          merged.push({...preset});
+        }
+      }
+      // 加上用户自定义项（非预设）
+      for (const p of state.prizes) {
+        if (!p.builtin && !PRESET_PRIZES.find(x => x.id === p.id)) {
+          merged.push(p);
+        }
+      }
+      state.prizes = merged;
+    }
+    // 一次性迁移老的 prizeName/Sub/Image 到一个"自定义"奖品
+    if ((state.prizeName || state.prizeImage) &&
+        !state.prizes.some(p => !p.builtin && p.name === state.prizeName)) {
+      state.prizes.push({
+        id: 'p_custom_' + Date.now(),
+        name: state.prizeName || '自定义奖品',
+        sub: state.prizeSub || '',
+        emoji: '🎁',
+        image: state.prizeImage || null,
+        builtin: false,
+      });
+    }
+    state.prizeName = null; state.prizeSub = null; state.prizeImage = null;
+    if (!state.currentPrizeId || !state.prizes.find(p => p.id === state.currentPrizeId)) {
+      state.currentPrizeId = state.prizes[0]?.id;
+    }
+    if (![1,2,5].includes(state.drawCount)) state.drawCount = 1;
+    if (!state.eventName) state.eventName = '票根抽奖';
+  }
+  function getCurrentPrize(){
+    return state.prizes.find(p => p.id === state.currentPrizeId) || state.prizes[0];
   }
   function isExcluded(n){ return state.excluded.indexOf(n) !== -1; }
   function addExcluded(n){ if (!isExcluded(n)) state.excluded.push(n); }
@@ -740,18 +923,51 @@
     document.getElementById('cfgPrefix').value = state.prefix;
     document.getElementById('cfgPad').value = state.pad;
     document.getElementById('cfgEventName').value = state.eventName || '票根抽奖';
-    document.getElementById('cfgPrizeName').value = state.prizeName;
-    document.getElementById('cfgPrizeSub').value = state.prizeSub;
 
-    const prev = document.getElementById('prizeImagePreview');
-    if (state.prizeImage) { prev.src = state.prizeImage; prev.style.display = 'block'; }
-    else prev.style.display = 'none';
+    renderPrizes();
+    renderDrawCount();
 
     refreshSliders();
     renderGrid();
     renderStats();
     renderHistory();
     renderLastResult();
+  }
+
+  function renderPrizes(){
+    const list = document.getElementById('prizeList');
+    list.innerHTML = state.prizes.map(p => {
+      const isActive = p.id === state.currentPrizeId;
+      const thumb = p.image
+        ? `<img src="${p.image}" alt="">`
+        : `<span>${p.emoji || '🎁'}</span>`;
+      const delBtn = p.builtin
+        ? ''
+        : `<button class="icon-btn danger" data-prize-del="${p.id}" title="删除该奖品">✕</button>`;
+      return `<div class="prize-item${isActive ? ' active' : ''}" data-prize-id="${p.id}">
+        <div class="thumb">${thumb}</div>
+        <div class="info">
+          <div class="name">${escapeHtml(p.name)}</div>
+          <div class="sub">${escapeHtml(p.sub || '')}</div>
+        </div>
+        <span class="badge-active">当前选中</span>
+        <div class="actions">
+          <button class="icon-btn" data-prize-edit="${p.id}" title="编辑名称/副标题">✏️</button>
+          <button class="icon-btn" data-prize-upload="${p.id}" title="上传/更换图片">🖼️</button>
+          ${delBtn}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderDrawCount(){
+    document.querySelectorAll('.count-btn').forEach(b => {
+      b.classList.toggle('active', +b.dataset.count === state.drawCount);
+    });
   }
 
   function refreshSliders(){
@@ -828,9 +1044,13 @@
       const totalIdx = state.won.length - idx;
       const t = new Date(w.time);
       const ts = String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+      const prizeTag = w.prizeName
+        ? `<span style="font-size:11px;color:#c5d0dc;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(w.prizeName)}">${escapeHtml(w.prizeName)}</span>`
+        : '';
       return `<div class="history-item" data-num="${w.num}">
         <span class="idx">${totalIdx}</span>
         <span class="ticket-tag">${fmt(w.num)}</span>
+        ${prizeTag}
         <span class="time">${ts}</span>
         <button class="del-btn" data-del="${w.num}" title="删除该条记录（票号变回可抽）">🗑️</button>
       </div>`;
@@ -846,6 +1066,16 @@
     } else {
       el.textContent = '尚未开始抽奖';
       el.classList.add('empty');
+    }
+    // 同步显示当前选中奖品
+    const subEl = document.getElementById('lastResultSub');
+    if (subEl) {
+      const cp = getCurrentPrize();
+      const ct = state.drawCount || 1;
+      const ctTag = ct > 1 ? `（连抽 ${ct} 次）` : '';
+      subEl.innerHTML = cp
+        ? `当前奖品：<strong style="color:#ffd700;">${escapeHtml(cp.name)}</strong>${ctTag}`
+        : `中奖结果会自动同步显示在此处`;
     }
   }
 
@@ -893,24 +1123,100 @@
     toast(`票池已重置：${fmt(start)} ~ ${fmt(end)}（共 ${total} 个）`);
   });
 
-  // prize fields
+  // event name
   document.getElementById('cfgEventName').addEventListener('input', e => { state.eventName = e.target.value; saveState(); });
-  document.getElementById('cfgPrizeName').addEventListener('input', e => { state.prizeName = e.target.value; saveState(); });
-  document.getElementById('cfgPrizeSub').addEventListener('input', e => { state.prizeSub = e.target.value; saveState(); });
+
+  // ---------- prize pool ----------
+  let pendingUploadId = null;
+  document.getElementById('prizeList').addEventListener('click', (e) => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    const editId = e.target.closest('[data-prize-edit]')?.dataset.prizeEdit;
+    const upId   = e.target.closest('[data-prize-upload]')?.dataset.prizeUpload;
+    const delId  = e.target.closest('[data-prize-del]')?.dataset.prizeDel;
+    const itemId = e.target.closest('[data-prize-id]')?.dataset.prizeId;
+    if (editId) { editPrize(editId); return; }
+    if (upId)   {
+      pendingUploadId = upId;
+      document.getElementById('prizeImageInput').click();
+      return;
+    }
+    if (delId) {
+      if (!confirm('确定删除该自定义奖品？')) return;
+      state.prizes = state.prizes.filter(p => p.id !== delId);
+      if (state.currentPrizeId === delId) state.currentPrizeId = state.prizes[0]?.id;
+      saveState(); renderPrizes(); renderLastResult();
+      toast('已删除');
+      return;
+    }
+    if (itemId) {
+      state.currentPrizeId = itemId;
+      saveState(); renderPrizes();
+      const cur = getCurrentPrize();
+      toast(`已选中：${cur ? cur.name : ''}`);
+    }
+  });
+
+  function editPrize(id){
+    const p = state.prizes.find(x => x.id === id);
+    if (!p) return;
+    const newName = prompt('奖品名称：', p.name);
+    if (newName == null) return;
+    const newSub = prompt('奖品副标题（可留空）：', p.sub || '');
+    if (newSub == null) return;
+    p.name = newName.trim() || p.name;
+    p.sub = newSub.trim();
+    saveState(); renderPrizes(); renderLastResult();
+    toast('已更新');
+  }
+
+  document.getElementById('btnAddCustomPrize').addEventListener('click', () => {
+    if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+    const name = prompt('新奖品名称：', '');
+    if (!name) return;
+    const sub = prompt('副标题（可留空）：', '') || '';
+    const newP = {
+      id: 'p_custom_' + Date.now(),
+      name: name.trim(),
+      sub: sub.trim(),
+      emoji: '🎁',
+      image: null,
+      builtin: false,
+    };
+    state.prizes.push(newP);
+    state.currentPrizeId = newP.id;
+    saveState(); renderPrizes();
+    toast(`已添加并选中：${newP.name}`);
+  });
+
   document.getElementById('prizeImageInput').addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // reset so same file can re-upload
     if (!file) return;
     if (!/^image\//.test(file.type)) { toast('请选择图片文件'); return; }
     if (file.size > 5*1024*1024) { toast('图片过大，请压缩到 5MB 以内'); return; }
+    if (!pendingUploadId) return;
+    const target = state.prizes.find(p => p.id === pendingUploadId);
+    if (!target) return;
     const reader = new FileReader();
     reader.onload = () => {
-      state.prizeImage = reader.result;
-      saveState();
-      const prev = document.getElementById('prizeImagePreview');
-      prev.src = reader.result; prev.style.display = 'block';
-      toast('奖品图片已更新（大屏端会同步）');
+      target.image = reader.result;
+      saveState(); renderPrizes(); renderLastResult();
+      toast(`已为「${target.name}」更新图片`);
+      pendingUploadId = null;
     };
     reader.readAsDataURL(file);
+  });
+
+  // ---------- draw count ----------
+  document.querySelectorAll('.count-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (state.drawing) { toast('抽奖动画进行中，请稍候'); return; }
+      const c = +b.dataset.count;
+      if (![1,2,5].includes(c)) return;
+      state.drawCount = c;
+      saveState(); renderDrawCount();
+      toast(`已设置抽奖次数：${c} 次`);
+    });
   });
 
   // ---------- range / slider sync ----------
@@ -1032,11 +1338,15 @@
   });
   document.getElementById('btnExport').addEventListener('click', () => {
     if (!state.won.length) { toast('暂无记录可导出'); return; }
-    const lines = ['序号,票号,中奖时间'];
+    const lines = ['序号,票号,奖品,奖品副标题,中奖时间'];
+    const csvEscape = v => {
+      const s = String(v == null ? '' : v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    };
     state.won.forEach((w, idx) => {
       const t = new Date(w.time);
       const ts = t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')+' '+String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
-      lines.push(`${idx+1},${fmt(w.num)},${ts}`);
+      lines.push([idx+1, fmt(w.num), w.prizeName||'', w.prizeSub||'', ts].map(csvEscape).join(','));
     });
     const csv = '\uFEFF' + lines.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
