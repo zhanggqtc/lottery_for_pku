@@ -935,14 +935,9 @@
   const CMD_KEY   = 'seat-lottery-cmd-v1';
   const SCREEN_HB = 'seat-lottery-screen-hb-v1';
 
-  // 6 款预设奖品（builtin），用户可上传图片但不可删除
+  // 预设奖品（builtin）：只保留一个测试用条目，其余由用户后续手动添加
   const PRESET_PRIZES = [
-    { id: 'p_sushui',   name: '塑水宗 2.0 套装',                    sub: 'VALORANT 武器皮肤套装',  emoji: '🔫', builtin: true, image: './sushuizong.png' },
-    { id: 'p_qile',     name: '无畏契约 奇乐 1/6 手办',              sub: '官方珍藏手办',            emoji: '🎎', builtin: true, image: null },
-    { id: 'p_bear',     name: '无畏契约 战术熊抱枕',                 sub: '柔软陪伴',                emoji: '🧸', builtin: true, image: null },
-    { id: 'p_bag',      name: '无畏契约 瓦友社 LOGO 经典配色双肩包',  sub: '校园通勤百搭',            emoji: '🎒', builtin: true, image: null },
-    { id: 'p_cap',      name: '无畏契约 瓦友社魔术贴鸭舌帽',         sub: '可调魔术贴',              emoji: '🧢', builtin: true, image: null },
-    { id: 'p_toy',      name: '无畏契约 瓦友社趣味发声玩具',         sub: '款式随机',                emoji: '🔊', builtin: true, image: null },
+    { id: 'p_test', name: '测试奖品', sub: '仅用于功能测试 · 上线前请替换', emoji: '🧪', builtin: true, image: null },
   ];
 
   const state = {
@@ -952,7 +947,7 @@
     won: [],               // [{num, time, prizeName, prizeSub, prizeImage}]
     eventName: '票根抽奖',
     prizes: null,          // 奖品池：[{id, name, sub, emoji, image, builtin}]
-    currentPrizeId: 'p_sushui',
+    currentPrizeId: 'p_test',
     drawCount: 1,          // 抽奖次数：1/2/5
     drawing: false,
     lastWinner: null,
@@ -989,10 +984,15 @@
       const raw = localStorage.getItem(STATE_KEY);
       if (!raw) { ensurePrizes(); return; }
       const d = JSON.parse(raw);
+      const beforePrizesLen = Array.isArray(d.prizes) ? d.prizes.length : 0;
       Object.assign(state, d);
       if (!Array.isArray(state.excluded)) state.excluded = [];
       if (!Array.isArray(state.won)) state.won = [];
       ensurePrizes();
+      // 旧的 builtin 奖品被 ensurePrizes 剔除时，主动写回一次清理磁盘存储
+      if (state.prizes.length !== beforePrizesLen) {
+        try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e){}
+      }
     } catch(e){ ensurePrizes(); }
   }
   function ensurePrizes(){
