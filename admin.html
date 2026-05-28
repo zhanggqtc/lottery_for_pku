@@ -627,6 +627,67 @@
     transition: all 0.3s;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error {
+    background: rgba(60,10,15,0.95);
+    border-color: var(--red);
+    color: #ffd9dd;
+    box-shadow: 0 0 30px rgba(255,70,85,0.45);
+  }
+  .toast.success {
+    background: rgba(10,40,20,0.95);
+    border-color: rgba(74,222,128,0.6);
+    color: #d6ffe6;
+  }
+
+  /* Diagnostic panel */
+  .diag-card {
+    background: rgba(0,212,255,0.06);
+    border: 1px solid rgba(0,212,255,0.22);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-top: 14px;
+    font-size: 12px;
+    color: #c5d0dc;
+  }
+  .diag-card .diag-title {
+    font-weight: 700;
+    color: #00d4ff;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 1px;
+  }
+  .diag-card .diag-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.05);
+  }
+  .diag-card .diag-row:last-of-type { border-bottom: 0; }
+  .diag-card .diag-row .k { color: var(--muted); }
+  .diag-card .diag-row .v { font-family: 'SF Mono', Menlo, monospace; color: #fff; }
+  .diag-card .diag-row .v.warn { color: #ffb454; }
+  .diag-card .diag-row .v.danger { color: var(--red); font-weight: 700; }
+  .diag-card .diag-actions {
+    display: flex; gap: 8px; margin-top: 10px;
+  }
+  .diag-card .diag-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #c5d0dc;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .diag-card .diag-btn:hover {
+    background: rgba(0,212,255,0.12);
+    border-color: rgba(0,212,255,0.4);
+    color: #fff;
+  }
 
   /* Tip card */
   .tip-card {
@@ -743,6 +804,34 @@
       <div class="btn-row" style="margin-top:10px;">
         <button class="btn btn-ghost" id="btnExport" style="flex:1;">📥 导出名单</button>
         <button class="btn btn-danger" id="btnClearHistory">清空记录</button>
+      </div>
+
+      <!-- 诊断面板：实时监控 localStorage 占用，避免静默写入失败 -->
+      <div class="diag-card">
+        <div class="diag-title">🩺 存储诊断</div>
+        <div class="diag-row">
+          <span class="k">中奖记录</span>
+          <span class="v" id="diagWonCount">0 条</span>
+        </div>
+        <div class="diag-row">
+          <span class="k">localStorage 占用</span>
+          <span class="v" id="diagStorageSize">0 KB</span>
+        </div>
+        <div class="diag-row">
+          <span class="k">奖品池图片</span>
+          <span class="v" id="diagImageSize">0 KB</span>
+        </div>
+        <div class="diag-row">
+          <span class="k">最后写入状态</span>
+          <span class="v" id="diagLastWrite">—</span>
+        </div>
+        <div class="diag-actions">
+          <button class="diag-btn" id="btnDiagBackup">📦 导出备份 JSON</button>
+          <button class="diag-btn" id="btnDiagShrink">🗜️ 压缩奖品图</button>
+        </div>
+        <div style="margin-top:6px;font-size:10px;color:var(--muted);line-height:1.5;">
+          ⚠️ localStorage 上限约 5MB（5120KB）。占用接近上限会导致新中奖记录无法保存。
+        </div>
       </div>
     </div>
   </div>
@@ -874,9 +963,26 @@
   };
   // section state (UI only)
   let rangeFrom = 1, rangeTo = 50;
+  // 最后一次 saveState 的状态（供诊断面板显示）
+  let lastWriteStatus = { ok: null, ts: 0 };
 
   function saveState(){
-    try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch(e){}
+    let ok = false;
+    try {
+      localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      ok = true;
+    } catch(e){
+      console.error('[saveState] 写入 localStorage 失败：', e);
+      if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message||'')))) {
+        toast('❌ 存储空间已满，新记录未保存！请清理奖品图片或清空旧记录', 'error', 6000);
+      } else {
+        toast('❌ 数据保存失败：' + (e && e.message || '未知错误'), 'error', 5000);
+      }
+    }
+    lastWriteStatus = { ok, ts: Date.now() };
+    // 不递归调 render；renderDiag 是轻量的，单独刷
+    try { renderDiag(); } catch(e){}
+    return ok;
   }
   function loadState(){
     try {
@@ -962,11 +1068,15 @@
 
   // ---------- toast ----------
   let toastTimer = null;
-  function toast(msg){
+  function toast(msg, type, duration){
     const t = document.getElementById('toast');
-    t.textContent = msg; t.classList.add('show');
+    t.textContent = msg;
+    t.classList.remove('error', 'success');
+    if (type === 'error') t.classList.add('error');
+    else if (type === 'success') t.classList.add('success');
+    t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+    toastTimer = setTimeout(()=>t.classList.remove('show'), duration || 1800);
   }
 
   // ---------- render ----------
@@ -986,6 +1096,42 @@
     renderHistory();
     renderLastResult();
     renderAbort();
+    renderDiag();
+  }
+
+  // 诊断信息：localStorage 占用、won 数量、图片体积
+  function renderDiag(){
+    const wonEl = document.getElementById('diagWonCount');
+    const sizeEl = document.getElementById('diagStorageSize');
+    const imgEl = document.getElementById('diagImageSize');
+    const lastEl = document.getElementById('diagLastWrite');
+    if (!wonEl) return;
+    wonEl.textContent = (state.won?.length || 0) + ' 条';
+    let raw = '';
+    try { raw = localStorage.getItem(STATE_KEY) || ''; } catch(e){}
+    const totalBytes = new Blob([raw]).size;
+    const totalKB = (totalBytes / 1024);
+    sizeEl.textContent = totalKB.toFixed(1) + ' KB';
+    sizeEl.classList.remove('warn', 'danger');
+    if (totalKB > 4500) sizeEl.classList.add('danger');
+    else if (totalKB > 3500) sizeEl.classList.add('warn');
+    // 图片体积估算
+    let imgBytes = 0;
+    (state.prizes || []).forEach(p => { if (p.image) imgBytes += p.image.length; });
+    const imgKB = imgBytes / 1024;
+    imgEl.textContent = imgKB.toFixed(1) + ' KB';
+    imgEl.classList.remove('warn', 'danger');
+    if (imgKB > 3000) imgEl.classList.add('danger');
+    else if (imgKB > 2000) imgEl.classList.add('warn');
+    // 最后写入状态
+    if (lastWriteStatus.ok === null) {
+      lastEl.textContent = '—';
+    } else {
+      const t = new Date(lastWriteStatus.ts);
+      const ts = String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0')+':'+String(t.getSeconds()).padStart(2,'0');
+      lastEl.textContent = (lastWriteStatus.ok ? '✓ 成功' : '✗ 失败') + ' · ' + ts;
+      lastEl.classList.toggle('danger', !lastWriteStatus.ok);
+    }
   }
 
   function renderAbort(){
@@ -1248,23 +1394,73 @@
     toast(`已添加并选中：${newP.name}`);
   });
 
-  document.getElementById('prizeImageInput').addEventListener('change', (e) => {
+  // 图片压缩：max 边长 800px、JPEG 0.85 质量。返回 base64 dataURL。
+  function compressImage(file, maxSize, quality){
+    maxSize = maxSize || 800;
+    quality = quality || 0.85;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('读取文件失败'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('图片解码失败'));
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxSize || height > maxSize) {
+            if (width >= height) {
+              height = Math.round(height * maxSize / width);
+              width = maxSize;
+            } else {
+              width = Math.round(width * maxSize / height);
+              height = maxSize;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          // 白色底（避免 PNG 透明 → JPEG 后变黑）
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          // 优先 JPEG（体积更小）。带透明的 PNG 已经填了白底，可以接受。
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({ dataUrl, width, height, originalSize: file.size, compressedSize: dataUrl.length });
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('prizeImageInput').addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = ''; // reset so same file can re-upload
     if (!file) return;
     if (!/^image\//.test(file.type)) { toast('请选择图片文件'); return; }
-    if (file.size > 5*1024*1024) { toast('图片过大，请压缩到 5MB 以内'); return; }
+    if (file.size > 10*1024*1024) { toast('图片超过 10MB，请先压缩'); return; }
     if (!pendingUploadId) return;
     const target = state.prizes.find(p => p.id === pendingUploadId);
     if (!target) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      target.image = reader.result;
-      saveState(); renderPrizes(); renderLastResult();
-      toast(`已为「${target.name}」更新图片`);
+    try {
+      const r = await compressImage(file, 800, 0.85);
+      target.image = r.dataUrl;
+      const ok = saveState();
+      renderPrizes(); renderLastResult(); renderDiag();
+      if (ok) {
+        const sizeKB = Math.round(r.dataUrl.length / 1024);
+        toast(`已为「${target.name}」更新图片（${sizeKB}KB）`, 'success');
+      } else {
+        // 写入失败：回滚
+        target.image = null;
+        renderPrizes(); renderLastResult(); renderDiag();
+      }
       pendingUploadId = null;
-    };
-    reader.readAsDataURL(file);
+    } catch(err){
+      console.error(err);
+      toast('图片处理失败：' + err.message, 'error', 4000);
+      pendingUploadId = null;
+    }
   });
 
   // ---------- draw count ----------
@@ -1425,6 +1621,60 @@
     sendCmd('force-reset');
     render();
     toast('已强制终止');
+  });
+
+  // ---------- diagnostic actions ----------
+  document.getElementById('btnDiagBackup').addEventListener('click', () => {
+    try {
+      const dump = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        state: state,
+      };
+      const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+      a.href = url;
+      a.download = `lottery-backup-${ts}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('备份已下载', 'success');
+    } catch(e){
+      console.error(e);
+      toast('备份失败：' + e.message, 'error');
+    }
+  });
+
+  document.getElementById('btnDiagShrink').addEventListener('click', async () => {
+    const targets = (state.prizes || []).filter(p => p.image && typeof p.image === 'string');
+    if (!targets.length) { toast('没有奖品图可压缩'); return; }
+    if (!confirm(`将对 ${targets.length} 张奖品图执行二次压缩（max 600px / JPEG 0.8），原图将被替换。继续？`)) return;
+    let beforeBytes = 0, afterBytes = 0, errCount = 0;
+    for (const p of targets) {
+      beforeBytes += p.image.length;
+      try {
+        const blob = await (await fetch(p.image)).blob();
+        const r = await compressImage(blob, 600, 0.8);
+        // 只有压完更小才替换
+        if (r.dataUrl.length < p.image.length) {
+          p.image = r.dataUrl;
+        }
+        afterBytes += p.image.length;
+      } catch(e){
+        console.warn('压缩失败：', p.id, e);
+        afterBytes += p.image.length;
+        errCount++;
+      }
+    }
+    const ok = saveState();
+    renderPrizes(); renderLastResult(); renderDiag();
+    const savedKB = ((beforeBytes - afterBytes) / 1024).toFixed(1);
+    if (ok) {
+      toast(`压缩完成，节省 ${savedKB}KB${errCount ? `（${errCount} 张失败）` : ''}`, 'success', 4000);
+    }
   });
 
   // ---------- listen storage ----------

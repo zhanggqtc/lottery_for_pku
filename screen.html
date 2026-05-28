@@ -858,7 +858,32 @@
     } catch(e){ return null; }
   }
   function saveState(s){
-    try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch(e){}
+    try {
+      localStorage.setItem(STATE_KEY, JSON.stringify(s));
+      return true;
+    } catch(e){
+      console.error('[screen.saveState] 写入 localStorage 失败：', e);
+      const isQuota = e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message||'')));
+      showError(isQuota
+        ? '⚠️ 存储已满！本次中奖可能未保存到记录。请到控制端清理奖品图或清空旧记录后再继续抽奖。'
+        : '⚠️ 数据保存失败：' + (e && e.message || '未知错误'));
+      return false;
+    }
+  }
+  // 屏幕端独立的错误浮层（避免静默失败）
+  let __errTimer = null;
+  function showError(msg){
+    let el = document.getElementById('__screenErr');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '__screenErr';
+      el.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:rgba(80,15,20,0.96);color:#ffd9dd;border:2px solid #ff4655;padding:16px 28px;border-radius:8px;font-size:18px;font-weight:700;letter-spacing:1px;box-shadow:0 0 40px rgba(255,70,85,0.5);z-index:99999;max-width:80%;text-align:center;line-height:1.6;';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.display = 'block';
+    clearTimeout(__errTimer);
+    __errTimer = setTimeout(() => { el.style.display = 'none'; }, 8000);
   }
   function fmt(n, s){
     s = s || loadState() || {};
@@ -1247,15 +1272,24 @@
     // 记录中奖（带奖品快照）
     const cur = loadState() || {};
     cur.won = cur.won || [];
+    // 不把整张 base64 大图塞进 won；图片信息以 prizeId 关联，只存名字+副标题
     cur.won.push({
       num, time: Date.now(),
       prizeName: prize.prizeName,
       prizeSub: prize.prizeSub,
-      prizeImage: prize.prizeImage,
+      // 不再把 prizeImage 塞进每条记录，避免 won 数组放大 localStorage
     });
     cur.drawing = false;
     cur.lastWinner = { num, time: Date.now() };
-    saveState(cur);
+    const ok = saveState(cur);
+    if (!ok) {
+      // 写入失败：回滚 won，让票号下次仍可被抽中
+      console.error('[screen] won 写入失败，回滚本条记录');
+      cur.won.pop();
+      cur.lastWinner = cur.won.length ? cur.won[cur.won.length - 1] : null;
+      // 再试一次（去掉 won 这条后通常体积会小一点，仍可能失败但不会比刚才更差）
+      try { localStorage.setItem(STATE_KEY, JSON.stringify(cur)); } catch(e){}
+    }
     drawing = false;
     window.__pendingWinner = null;
 
