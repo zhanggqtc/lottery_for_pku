@@ -303,26 +303,6 @@
     0%,100% { transform: translateX(0); }
     50% { transform: translateX(8px); }
   }
-  .stop-hint-progress {
-    width: 320px;
-    height: 6px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 3px;
-    margin: 16px auto 0;
-    overflow: hidden;
-    position: relative;
-  }
-  .stop-hint-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #ff4655, #ffd700);
-    border-radius: 3px;
-    width: 0%;
-    transition: width 0.1s linear;
-  }
-  .stop-hint-progress-fill.ready {
-    background: linear-gradient(90deg, #4ade80, #ffd700);
-    box-shadow: 0 0 12px rgba(74,222,128,0.6);
-  }
 
   .no-pool-hint {
     margin-top: 48px;
@@ -777,9 +757,6 @@
       再 按 一 次 空 格 停 止
       <span class="stop-hint-arrow" style="transform:scaleX(-1);">▶</span>
     </div>
-    <div class="stop-hint-progress">
-      <div class="stop-hint-progress-fill" id="stopProgress"></div>
-    </div>
   </div>
   <button class="big-stop-btn" id="btnStop" disabled>停 止 抽 奖</button>
 </div>
@@ -1192,28 +1169,18 @@
     }, 60);
 
     const hintText = document.getElementById('stopHintText');
-    const progress = document.getElementById('stopProgress');
     const stopBtn = document.getElementById('btnStop');
     hintText.classList.remove('armed');
-    progress.classList.remove('ready');
-    progress.style.width = '0%';
     stopBtn.disabled = true;
 
-    const startTs = Date.now();
-    progressTimer = setInterval(() => {
-      const elapsed = Date.now() - startTs;
-      const pct = Math.min(100, (elapsed / MIN_SPIN_MS) * 100);
-      progress.style.width = pct + '%';
-      if (pct >= 100 && !canStop) {
-        canStop = true;
-        progress.classList.add('ready');
-        hintText.classList.add('armed');
-        stopBtn.disabled = false;
-        tick(880, 0.12, 0.06);
-        clearInterval(progressTimer);
-        progressTimer = null;
-      }
-    }, 50);
+    // 1 秒后允许停止（保护逻辑，但不显示进度条避免误解为"自动开奖"）
+    progressTimer = setTimeout(() => {
+      canStop = true;
+      hintText.classList.add('armed');
+      stopBtn.disabled = false;
+      tick(880, 0.12, 0.06);
+      progressTimer = null;
+    }, MIN_SPIN_MS);
 
     window.__pendingWinner = winner;
   }
@@ -1222,7 +1189,7 @@
     if (!drawing || !spinning || !canStop) return;
     spinning = false;
     if (spinTimer) { clearInterval(spinTimer); spinTimer = null; }
-    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
 
     const winner = window.__pendingWinner;
     const s = loadState() || {};
@@ -1240,7 +1207,6 @@
         setDigit(String(winner).padStart(pad, '0'), false, true);
         tick(1320, 0.3, 0.15);
         document.getElementById('stopHintText').textContent = '🎊  中 奖 啦  🎊';
-        document.querySelector('.stop-hint-progress').style.display = 'none';
         document.getElementById('btnStop').style.display = 'none';
         setTimeout(() => showWinner(winner), 800);
       }
@@ -1319,11 +1285,8 @@
   }
 
   function resetDrawUi(){
-    document.querySelector('.stop-hint-progress').style.display = 'block';
     document.getElementById('btnStop').style.display = '';
     document.getElementById('btnStop').disabled = true;
-    document.getElementById('stopProgress').style.width = '0%';
-    document.getElementById('stopProgress').classList.remove('ready');
     const hintText = document.getElementById('stopHintText');
     hintText.classList.remove('armed');
     hintText.innerHTML = '<span class="stop-hint-arrow">▶</span> 再 按 一 次 空 格 停 止 <span class="stop-hint-arrow" style="transform:scaleX(-1);">▶</span>';
@@ -1331,7 +1294,7 @@
 
   function reset(){
     if (spinTimer) { clearInterval(spinTimer); spinTimer = null; }
-    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+    if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
     drawing = false;
     spinning = false;
     canStop = false;
