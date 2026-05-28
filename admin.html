@@ -180,6 +180,52 @@
   }
   .last-result .empty { color: #4a5b70; font-size: 13px; padding: 10px; letter-spacing: 2px; }
 
+  /* Emergency abort */
+  .abort-card {
+    display: none;
+    background: linear-gradient(145deg, rgba(255,70,85,0.18), rgba(255,70,85,0.06));
+    border: 2px solid rgba(255,70,85,0.6);
+    border-radius: 12px;
+    padding: 18px 20px;
+    text-align: center;
+    margin-bottom: 14px;
+    box-shadow: 0 0 24px rgba(255,70,85,0.25);
+    animation: abortBreath 1.4s ease-in-out infinite;
+  }
+  .abort-card.show { display: block; }
+  @keyframes abortBreath {
+    0%,100% { box-shadow: 0 0 24px rgba(255,70,85,0.25); }
+    50% { box-shadow: 0 0 40px rgba(255,70,85,0.55); }
+  }
+  .abort-card .abort-title {
+    font-size: 15px; font-weight: 800; color: #ff8a94;
+    letter-spacing: 2px; margin-bottom: 6px;
+  }
+  .abort-card .abort-desc {
+    font-size: 12px; color: #c5d0dc; line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  .abort-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #ff4655, #c73a46);
+    color: #fff;
+    border: 2px solid #fff;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(255,70,85,0.5);
+  }
+  .abort-btn:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 30px rgba(255,70,85,0.8);
+  }
+  .abort-btn:active { transform: scale(0.98); }
+
   /* Trigger hint card */
   .trigger-card {
     background:
@@ -710,6 +756,13 @@
       <div style="font-size:12px;color:var(--muted);" id="lastResultSub">中奖结果会自动同步显示在此处</div>
     </div>
 
+    <!-- Emergency abort (only shown when state.drawing) -->
+    <div class="abort-card" id="abortCard">
+      <div class="abort-title">⚠️ 抽奖动画进行中</div>
+      <div class="abort-desc">如果大屏卡住或异常中断，点击下方按钮强制终止当前抽奖</div>
+      <button class="abort-btn" id="btnAbort">⛔ 强 制 终 止 当 前 抽 奖</button>
+    </div>
+
     <!-- Trigger hint -->
     <div class="trigger-card">
       <div class="trigger-card-title">🎬 抽奖在大屏端启动</div>
@@ -932,6 +985,13 @@
     renderStats();
     renderHistory();
     renderLastResult();
+    renderAbort();
+  }
+
+  function renderAbort(){
+    const card = document.getElementById('abortCard');
+    if (!card) return;
+    card.classList.toggle('show', !!state.drawing);
   }
 
   function renderPrizes(){
@@ -1355,6 +1415,16 @@
     a.href = url; a.download = `ticket-lottery-${new Date().toISOString().slice(0,10)}.csv`;
     a.click(); URL.revokeObjectURL(url);
     toast('已导出 CSV');
+  });
+
+  // ---------- abort (emergency stop) ----------
+  document.getElementById('btnAbort').addEventListener('click', () => {
+    if (!confirm('确定要强制终止当前抽奖吗？\n\n大屏会立即停止动画并回到等待页，本次未出结果不会写入记录。')) return;
+    state.drawing = false;
+    saveState();
+    sendCmd('force-reset');
+    render();
+    toast('已强制终止');
   });
 
   // ---------- listen storage ----------

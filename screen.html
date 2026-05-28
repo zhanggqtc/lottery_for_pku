@@ -1325,6 +1325,14 @@
   function handleCmd(cmd){
     if (cmd.type === 'reset') {
       reset();
+    } else if (cmd.type === 'force-reset') {
+      // 强制中断：清除自动 idle 倒计时 + 主动停止
+      clearTimeout(window.__autoIdleTimer);
+      reset();
+      // 同步更新 state
+      const cur = loadState() || {};
+      cur.drawing = false;
+      saveState(cur);
     }
   }
   window.addEventListener('storage', (e) => {
