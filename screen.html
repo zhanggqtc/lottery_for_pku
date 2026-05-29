@@ -316,117 +316,6 @@
   }
   .no-pool-hint.show { display: block; }
 
-  .idle-history {
-    margin-top: 40px;
-    width: 92vw;
-    max-width: 1500px;
-  }
-  .idle-history.empty { display: none; }
-  .idle-history-title {
-    text-align: center;
-    font-size: 18px;
-    color: #ffd700;
-    letter-spacing: 8px;
-    font-weight: 800;
-    margin-bottom: 18px;
-    text-shadow: 0 0 14px rgba(255,215,0,0.5);
-  }
-  .idle-history-title .count {
-    background: linear-gradient(135deg, #ffd700, #ff4655);
-    color: #1a1608;
-    padding: 4px 14px;
-    border-radius: 14px;
-    margin-left: 10px;
-    font-size: 16px;
-    font-weight: 900;
-    box-shadow: 0 2px 12px rgba(255,215,0,0.4);
-  }
-  .idle-history-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 14px;
-    max-height: 35vh;
-    overflow-y: auto;
-    padding: 6px;
-  }
-  .idle-history-grid::-webkit-scrollbar { width: 8px; }
-  .idle-history-grid::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.4); border-radius: 4px; }
-  .idle-history-grid::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 4px; }
-  .idle-history .ticket-card {
-    background: linear-gradient(145deg, rgba(255,215,0,0.22), rgba(255,70,85,0.14));
-    border: 2px solid rgba(255,215,0,0.5);
-    border-radius: 12px;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: all 0.3s;
-    box-shadow: 0 4px 20px rgba(255,215,0,0.15);
-    position: relative;
-  }
-  .idle-history .ticket-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(255,215,0,0.35);
-  }
-  .idle-history .ticket-card .idx {
-    font-size: 13px;
-    color: #ffd700;
-    background: rgba(0,0,0,0.45);
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-weight: 800;
-    flex-shrink: 0;
-    font-family: 'SF Mono', Menlo, monospace;
-    letter-spacing: 1px;
-    border: 1px solid rgba(255,215,0,0.3);
-  }
-  .idle-history .ticket-card .num {
-    font-size: 24px;
-    color: #ffd700;
-    font-weight: 900;
-    font-family: 'SF Mono', Menlo, monospace;
-    letter-spacing: 2px;
-    flex: 1;
-    text-align: center;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  }
-  .idle-history .ticket-card.latest {
-    border-color: var(--gold);
-    border-width: 3px;
-    background: linear-gradient(145deg, rgba(255,215,0,0.4), rgba(255,70,85,0.25));
-    box-shadow: 0 0 30px rgba(255,215,0,0.5);
-    animation: latestPulse 1.6s ease-in-out infinite;
-    transform: scale(1.05);
-  }
-  @keyframes latestPulse {
-    0%,100% {
-      box-shadow: 0 0 30px rgba(255,215,0,0.5);
-    }
-    50% {
-      box-shadow: 0 0 50px rgba(255,215,0,0.9), 0 0 80px rgba(255,70,85,0.4);
-    }
-  }
-  .idle-history .ticket-card.latest .num {
-    background: linear-gradient(135deg, #ffd700, #ff4655);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: 28px;
-  }
-  .idle-history .ticket-card.latest::before {
-    content: '★ NEW';
-    position: absolute;
-    top: -10px;
-    right: -8px;
-    background: linear-gradient(135deg, #ff4655, #ffd700);
-    color: #1a1608;
-    font-size: 10px;
-    font-weight: 900;
-    padding: 3px 8px;
-    border-radius: 10px;
-    letter-spacing: 1px;
-    box-shadow: 0 2px 10px rgba(255,70,85,0.6);
-  }
-
   /* Stage B: drawing */
   .stage-draw {
     position: fixed; inset: 0; z-index: 6;
@@ -784,7 +673,6 @@
 <div class="bottom-bar">
   <div class="left">
     <span class="stat-mini"><b id="bbAvailable">0</b>可抽</span>
-    <span class="stat-mini"><b id="bbWon">0</b>已中奖</span>
     <span class="stat-mini" id="bbTime">--:--:--</span>
   </div>
   <div class="right">
@@ -805,10 +693,6 @@
   <button class="big-start-btn" id="btnStart">开 始 抽 奖</button>
   <div class="start-hint">点击按钮 · 或按 <kbd>空格</kbd> / <kbd>Enter</kbd> 启动 · <span style="color:#ffd700;">需按两次（开始 → 停止）</span></div>
   <div class="no-pool-hint" id="noPoolHint">⚠️ 暂无可抽票号，请先在控制端配置</div>
-  <div class="idle-history empty" id="idleHistoryWrap">
-    <div class="idle-history-title">★ 已 开 奖 记 录 <span class="count" id="idleHistoryCount">0</span></div>
-    <div class="idle-history-grid" id="idleHistory"></div>
-  </div>
 </div>
 
 <!-- Stage B: Drawing -->
@@ -1067,19 +951,12 @@
 
   function updateIdle(){
     const s = loadState();
-    const histWrap = document.getElementById('idleHistoryWrap');
-    const hist = document.getElementById('idleHistory');
-    const histCnt = document.getElementById('idleHistoryCount');
     const titleEl = document.getElementById('idleTitle');
     if (!s) {
       titleEl.textContent = spaced('票根抽奖');
       applyTitleSize(titleEl, '票根抽奖');
       document.getElementById('idlePrizeName').textContent = '一等奖';
-      hist.innerHTML = '';
-      histWrap.classList.add('empty');
-      histCnt.textContent = '0';
       document.getElementById('bbAvailable').textContent = '0';
-      document.getElementById('bbWon').textContent = '0';
       document.getElementById('ticketPrefix').textContent = 'No.';
       setStartBtnAvailable(0);
       return;
@@ -1091,24 +968,6 @@
     document.getElementById('idlePrizeName').textContent = cp.name || '一等奖';
     document.getElementById('ticketPrefix').textContent = s.prefix || '';
 
-    if (s.won && s.won.length) {
-      // 倒序显示：最新的在最前面
-      const latest = s.won.length - 1;
-      hist.innerHTML = s.won.map((w, i) => {
-        const cls = (i === latest) ? 'ticket-card latest' : 'ticket-card';
-        return `<div class="${cls}">
-          <span class="idx">${String(i+1).padStart(2,'0')}</span>
-          <span class="num">${fmt(w.num, s)}</span>
-        </div>`;
-      }).reverse().join('');
-      histCnt.textContent = s.won.length;
-      histWrap.classList.remove('empty');
-    } else {
-      hist.innerHTML = '';
-      histWrap.classList.add('empty');
-      histCnt.textContent = '0';
-    }
-
     const wonSet = new Set((s.won||[]).map(w => w.num));
     const excSet = new Set(s.excluded||[]);
     let avail = 0;
@@ -1116,7 +975,6 @@
       if (!excSet.has(n) && !wonSet.has(n)) avail++;
     }
     document.getElementById('bbAvailable').textContent = avail;
-    document.getElementById('bbWon').textContent = wonSet.size;
     setStartBtnAvailable(avail);
   }
 
