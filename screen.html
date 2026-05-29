@@ -558,6 +558,73 @@
     50% { transform: scale(1.03); box-shadow: 0 0 100px rgba(255,70,85,0.9), inset 0 4px 20px rgba(255,255,255,0.15); }
   }
 
+  /* 多号网格（连抽 2/5 时一次性同屏展示） */
+  .winner-tickets {
+    display: grid;
+    gap: 18px;
+    margin-bottom: 24px;
+    justify-content: center;
+    align-items: center;
+  }
+  .winner-tickets.count-1 { grid-template-columns: 1fr; }
+  .winner-tickets.count-2 { grid-template-columns: repeat(2, auto); }
+  .winner-tickets.count-5 { grid-template-columns: repeat(5, auto); }
+  .winner-tickets .wt-card {
+    background: linear-gradient(135deg, var(--red), #c73a46);
+    color: #fff;
+    border-radius: 14px;
+    border: 3px solid rgba(255,255,255,0.2);
+    box-shadow: 0 0 50px rgba(255,70,85,0.55), inset 0 4px 20px rgba(255,255,255,0.1);
+    font-family: 'SF Mono', Menlo, monospace;
+    font-weight: 900;
+    text-align: center;
+    animation: wtPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both, ticketPulse 1.6s ease-in-out 0.6s infinite;
+    position: relative;
+  }
+  .winner-tickets .wt-card .wt-idx {
+    position: absolute;
+    top: -12px; left: -12px;
+    background: var(--gold);
+    color: #1a1030;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  /* 抽 1：保持原来的大字效果 */
+  .winner-tickets.count-1 .wt-card {
+    padding: 22px 70px;
+    font-size: 96px;
+    letter-spacing: 6px;
+  }
+  .winner-tickets.count-1 .wt-card .wt-idx { display: none; }
+  /* 抽 2：两张并排，依然大气 */
+  .winner-tickets.count-2 .wt-card {
+    padding: 20px 50px;
+    font-size: 76px;
+    letter-spacing: 4px;
+  }
+  /* 抽 5：紧凑横排 */
+  .winner-tickets.count-5 .wt-card {
+    padding: 16px 22px;
+    font-size: 48px;
+    letter-spacing: 3px;
+    min-width: 140px;
+  }
+  /* 入场依次错开 */
+  .winner-tickets .wt-card:nth-child(1) { animation-delay: 0s, 0.6s; }
+  .winner-tickets .wt-card:nth-child(2) { animation-delay: 0.12s, 0.72s; }
+  .winner-tickets .wt-card:nth-child(3) { animation-delay: 0.24s, 0.84s; }
+  .winner-tickets .wt-card:nth-child(4) { animation-delay: 0.36s, 0.96s; }
+  .winner-tickets .wt-card:nth-child(5) { animation-delay: 0.48s, 1.08s; }
+  @keyframes wtPop {
+    0% { opacity: 0; transform: translateY(40px) scale(0.6); }
+    60% { opacity: 1; transform: translateY(-8px) scale(1.08); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
   .winner-prize-label {
     font-size: 16px; color: #7a8fa6;
     letter-spacing: 8px; font-weight: 700;
@@ -765,7 +832,10 @@
 <div class="stage-winner" id="stageWinner">
   <div class="winner-crown">★ ★ ★  CONGRATULATIONS  ★ ★ ★</div>
   <div class="winner-title">恭 喜 中 奖</div>
-  <div class="winner-ticket" id="winnerTicket">No. ---</div>
+  <!-- 单号占位（兼容老逻辑），抽 1 时用 -->
+  <div class="winner-ticket" id="winnerTicket" style="display:none;">No. ---</div>
+  <!-- 多号网格容器：抽 1/2/5 时按 count 切换布局 -->
+  <div class="winner-tickets" id="winnerTickets"></div>
   <div class="winner-prize-label">PRIZE · 奖 品</div>
   <div class="winner-prize" id="winnerPrize">一等奖</div>
   <div class="winner-prize-sub" id="winnerPrizeSub">活动现场限定</div>
@@ -831,8 +901,8 @@
       <span style="color:#ffd700;font-size:13px;">第 1 次按 → 数字开始滚动；第 2 次按 → 锁定结果（最少滚 1 秒后才能停）</span></div>
     </div>
     <div class="step-item"><div class="num">4</div>
-      <div>连抽 2 / 5 时，<strong>每一抽都需要按两次空格</strong>（开始 → 停止）；<br>
-      <span style="color:#ffd700;font-size:13px;">中奖展示中再按一次空格 → 进入下一抽；最后一抽展示后 9 秒回到等待页（也可主动按空格立即返回）</span></div>
+      <div>连抽 2 / 5 时，<strong>仍然只按两次空格</strong>（开始 → 停止）；<br>
+      <span style="color:#ffd700;font-size:13px;">第 2 次空格按下时一次性同屏展示 2 / 5 个中奖号码；中奖展示页再按一次空格立即返回等待页（不按则 12 秒后自动返回）</span></div>
     </div>
     <p style="margin-top:20px;font-size:13px;color:#7a8fa6;">
       快捷键：<kbd>空格</kbd>/<kbd>Enter</kbd> 启动/停止/跳过 · <kbd>F</kbd> 全屏 · <kbd>H</kbd> 帮助 · <kbd>C</kbd> 隐藏鼠标 · <kbd>ESC</kbd> 关闭弹层
@@ -959,6 +1029,25 @@
     }
     if (!pool.length) return null;
     return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // 一次性挑 N 个不重复的中奖号；池子不够时返回所有可用号
+  function pickNWinnersFromState(s, n){
+    if (!s) return [];
+    const wonSet = new Set((s.won||[]).map(w => w.num));
+    const excSet = new Set(s.excluded||[]);
+    const pool = [];
+    const start = s.start || 1, end = s.end || 0;
+    for (let i = start; i <= end; i++) {
+      if (excSet.has(i) || wonSet.has(i)) continue;
+      pool.push(i);
+    }
+    // Fisher–Yates 洗牌取前 n 个
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, Math.min(n, pool.length));
   }
 
   function spaced(text){
@@ -1116,10 +1205,11 @@
   let progressTimer = null;
   const MIN_SPIN_MS = 1000;
 
-  // 连抽进度
+  // 连抽进度（保留变量名做兼容；新模式下 batchIndex 不再使用）
   let batchTotal = 1;
-  let batchIndex = 0;     // 0-based, 第 N 抽中的 N-1
-  let batchPrize = null;  // 整批使用的奖品快照
+  let batchIndex = 0;
+  let batchPrize = null;       // 整批使用的奖品快照
+  let batchWinners = [];       // 一次性抽出的 N 个号
 
   function setDigit(text, spin, locked){
     const el = document.getElementById('digitMain');
@@ -1131,19 +1221,20 @@
   function updateProgressLabel(){
     const el = document.getElementById('drawProgress');
     if (batchTotal > 1) {
-      el.textContent = `第 ${batchIndex + 1} / ${batchTotal} 抽`;
+      el.textContent = `本轮一次抽 ${batchTotal} 个`;
       el.style.display = '';
     } else {
       el.style.display = 'none';
     }
   }
 
+  // 按一次空格 → 一次性抽出 N 个号（在内部决定，但只播一段动画）
   function startBatch(){
     if (drawing) return;
     const s = loadState() || {};
     batchTotal = [1,2,5].includes(s.drawCount) ? s.drawCount : 1;
     batchIndex = 0;
-    // 锁定本批次使用的奖品（取一次，全程用同一个）
+    // 锁定本批次使用的奖品
     const cp = getCurrentPrize(s);
     batchPrize = {
       prizeName: cp.name,
@@ -1151,21 +1242,24 @@
       prizeImage: cp.image,
       prizeEmoji: cp.emoji,
     };
+    // 一次性抽 N 个号（不重复）
+    batchWinners = pickNWinnersFromState(s, batchTotal);
+    if (!batchWinners.length) {
+      // 池子已空
+      return;
+    }
     startDraw();
   }
 
   function startDraw(){
     if (drawing) return;
     const s = loadState();
-    const winner = pickWinnerFromState(s);
-    if (winner == null) {
-      // 没号可抽（可能批量过程中池子用光了）
-      if (batchIndex > 0) {
-        // 已经抽到部分号码，回 idle 让用户感知
-        showStage('idle');
-        updateIdle();
-      }
-      return;
+    if (!batchWinners.length) {
+      // 兜底：没有预抽号
+      const w = pickWinnerFromState(s);
+      if (w == null) return;
+      batchWinners = [w];
+      batchTotal = 1;
     }
 
     drawing = true;
@@ -1199,7 +1293,7 @@
     hintText.classList.remove('armed');
     stopBtn.disabled = true;
 
-    // 1 秒后允许停止（保护逻辑，但不显示进度条避免误解为"自动开奖"）
+    // 1 秒后允许停止
     progressTimer = setTimeout(() => {
       canStop = true;
       hintText.classList.add('armed');
@@ -1207,8 +1301,6 @@
       tick(880, 0.12, 0.06);
       progressTimer = null;
     }, MIN_SPIN_MS);
-
-    window.__pendingWinner = winner;
   }
 
   function stopDraw(){
@@ -1217,7 +1309,8 @@
     if (spinTimer) { clearInterval(spinTimer); spinTimer = null; }
     if (progressTimer) { clearTimeout(progressTimer); progressTimer = null; }
 
-    const winner = window.__pendingWinner;
+    // 用最后一个号收尾滚动数字（视觉上"咔哒"定格）
+    const finalShow = batchWinners[batchWinners.length - 1];
     const s = loadState() || {};
     const pad = s.pad || 3;
     const start = s.start || 1, end = s.end || 200;
@@ -1230,25 +1323,35 @@
         tick(220 + i*60, 0.06, 0.05);
         setTimeout(decelStep, decelDelays[i++]);
       } else {
-        setDigit(String(winner).padStart(pad, '0'), false, true);
+        setDigit(String(finalShow).padStart(pad, '0'), false, true);
         tick(1320, 0.3, 0.15);
         document.getElementById('stopHintText').textContent = '🎊  中 奖 啦  🎊';
         document.getElementById('btnStop').style.display = 'none';
-        setTimeout(() => showWinner(winner), 800);
+        setTimeout(() => showWinners(batchWinners.slice()), 800);
       }
     }
     decelStep();
   }
 
-  function showWinner(num){
+  // 同屏展示一组中奖号（1/2/5 个），并一次性写入 won
+  function showWinners(nums){
     const s = loadState() || {};
-    // 用本批次锁定的奖品（如果存在），否则即时取
     const prize = batchPrize || {
       prizeName: getCurrentPrize(s).name,
       prizeSub: getCurrentPrize(s).sub,
       prizeImage: getCurrentPrize(s).image,
     };
-    document.getElementById('winnerTicket').textContent = fmt(num, s);
+
+    // 渲染号码网格
+    const single = document.getElementById('winnerTicket');
+    if (single) single.style.display = 'none';
+    const grid = document.getElementById('winnerTickets');
+    grid.className = 'winner-tickets count-' + nums.length;
+    grid.innerHTML = nums.map((n, idx) => {
+      const idxTag = nums.length > 1 ? `<span class="wt-idx">#${idx+1}</span>` : '';
+      return `<div class="wt-card">${idxTag}${fmt(n, s)}</div>`;
+    }).join('');
+
     document.getElementById('winnerPrize').textContent = prize.prizeName || '一等奖';
     document.getElementById('winnerPrizeSub').textContent = prize.prizeSub || '活动现场限定';
     const wrap = document.getElementById('winnerImageWrap');
@@ -1270,59 +1373,54 @@
     fireConfetti();
     fireFireworks();
 
-    // 记录中奖（带奖品快照）
+    // 一次性写入 N 条 won
     const cur = loadState() || {};
     cur.won = cur.won || [];
-    // 不把整张 base64 大图塞进 won；图片信息以 prizeId 关联，只存名字+副标题
-    cur.won.push({
-      num, time: Date.now(),
-      prizeName: prize.prizeName,
-      prizeSub: prize.prizeSub,
-      // 不再把 prizeImage 塞进每条记录，避免 won 数组放大 localStorage
+    const before = cur.won.length;
+    const ts = Date.now();
+    nums.forEach((n, i) => {
+      cur.won.push({
+        num: n,
+        time: ts + i, // 微小递增，保证排序稳定
+        prizeName: prize.prizeName,
+        prizeSub: prize.prizeSub,
+      });
     });
     cur.drawing = false;
-    cur.lastWinner = { num, time: Date.now() };
+    cur.lastWinner = { num: nums[nums.length - 1], time: ts + nums.length - 1 };
     const ok = saveState(cur);
     if (!ok) {
-      // 写入失败：回滚 won，让票号下次仍可被抽中
-      console.error('[screen] won 写入失败，回滚本条记录');
-      cur.won.pop();
+      // 写入失败：回滚本批所有新增
+      console.error('[screen] won 写入失败，回滚本批 ' + nums.length + ' 条');
+      cur.won.length = before;
       cur.lastWinner = cur.won.length ? cur.won[cur.won.length - 1] : null;
-      // 再试一次（去掉 won 这条后通常体积会小一点，仍可能失败但不会比刚才更差）
       try { localStorage.setItem(STATE_KEY, JSON.stringify(cur)); } catch(e){}
     }
     drawing = false;
-    window.__pendingWinner = null;
 
     clearTimeout(window.__autoIdleTimer);
 
-    // 是否还有下一抽？
-    if (batchIndex + 1 < batchTotal) {
-      // 还有下一抽 → 停在中奖展示，等待主持人按空格开始下一抽
-      // 不再自动倒计时进入下一抽，避免"一下蹦出 N 个结果"的体验
-      showNextBatchHint(true);
-    } else {
-      // 全部抽完，9 秒后回 idle
-      showNextBatchHint(false);
-      window.__autoIdleTimer = setTimeout(() => {
-        showStage('idle');
-        resetDrawUi();
-        updateIdle();
-        batchTotal = 1; batchIndex = 0; batchPrize = null;
-      }, 9000);
-    }
+    // 显示"按空格回等待页"的提示
+    showReturnHint();
+
+    // 兜底 12 秒后回 idle
+    window.__autoIdleTimer = setTimeout(() => {
+      showStage('idle');
+      resetDrawUi();
+      updateIdle();
+      batchTotal = 1; batchIndex = 0; batchPrize = null; batchWinners = [];
+    }, 12000);
   }
 
-  // 在中奖展示页给一个"按空格抽下一轮"或"按空格回到等待页"的提示
-  function showNextBatchHint(hasNext){
+  // 中奖展示页底部"按空格回到等待页"的提示
+  function showReturnHint(){
     let el = document.getElementById('winnerNextHint');
     if (!el) {
       el = document.createElement('div');
       el.id = 'winnerNextHint';
-      el.style.cssText = 'margin-top:32px;font-size:18px;letter-spacing:6px;color:#ffd700;font-weight:700;animation:winnerHintPulse 1.4s ease-in-out infinite;';
+      el.style.cssText = 'margin-top:28px;font-size:16px;letter-spacing:5px;color:#ffd700;font-weight:700;animation:winnerHintPulse 1.4s ease-in-out infinite;';
       const stage = document.getElementById('stageWinner');
       if (stage) stage.appendChild(el);
-      // 注入一次性 keyframes
       if (!document.getElementById('winnerHintKeyframes')) {
         const st = document.createElement('style');
         st.id = 'winnerHintKeyframes';
@@ -1330,21 +1428,8 @@
         document.head.appendChild(st);
       }
     }
-    if (hasNext) {
-      el.innerHTML = '▶ 按 <kbd style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:4px;padding:2px 12px;font-family:SF Mono,Menlo,monospace;color:#fff;margin:0 6px;">空格</kbd> 开始第 ' + (batchIndex + 2) + ' / ' + batchTotal + ' 抽 ◀';
-      el.style.display = '';
-    } else {
-      el.style.display = 'none';
-    }
-  }
-
-  function nextInBatch(){
-    batchIndex += 1;
-    // 隐藏"按空格抽下一轮"提示
-    const hint = document.getElementById('winnerNextHint');
-    if (hint) hint.style.display = 'none';
-    resetDrawUi();
-    startDraw();
+    el.innerHTML = '按 <kbd style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:4px;padding:2px 12px;font-family:SF Mono,Menlo,monospace;color:#fff;margin:0 6px;">空格</kbd> 立即返回等待页';
+    el.style.display = '';
   }
 
   function resetDrawUi(){
@@ -1362,7 +1447,7 @@
     spinning = false;
     canStop = false;
     window.__pendingWinner = null;
-    batchTotal = 1; batchIndex = 0; batchPrize = null;
+    batchTotal = 1; batchIndex = 0; batchPrize = null; batchWinners = [];
     const hint = document.getElementById('winnerNextHint');
     if (hint) hint.style.display = 'none';
     resetDrawUi();
@@ -1501,20 +1586,14 @@
     if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
       e.preventDefault();
       if (stageWinner.classList.contains('show')) {
-        // 中奖展示中：
+        // 中奖展示中：按空格立即回等待页（新模式：所有号已一次性展示，无需下一抽）
         clearTimeout(window.__autoIdleTimer);
-        if (batchIndex + 1 < batchTotal) {
-          // 还有下一抽 → 立即开始
-          nextInBatch();
-        } else {
-          // 全部抽完 → 跳过庆祝回 idle
-          const _hint = document.getElementById('winnerNextHint');
-          if (_hint) _hint.style.display = 'none';
-          resetDrawUi();
-          showStage('idle');
-          updateIdle();
-          batchTotal = 1; batchIndex = 0; batchPrize = null;
-        }
+        const _hint = document.getElementById('winnerNextHint');
+        if (_hint) _hint.style.display = 'none';
+        resetDrawUi();
+        showStage('idle');
+        updateIdle();
+        batchTotal = 1; batchIndex = 0; batchPrize = null; batchWinners = [];
       } else if (drawing && spinning) {
         if (canStop) stopDraw();
       } else if (!drawing) {
